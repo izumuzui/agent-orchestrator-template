@@ -76,3 +76,20 @@ private absolute paths, or terminal dump.
 ## Changed files
 
 Repository-relative paths only.
+
+## Resume checkpoint
+
+- repository_id: (safe identifier, no private URL or absolute path)
+- branch:
+- checkpoint_commit:
+- previous_writer:
+- previous_writer_stopped: false
+- next_writer:
+- next_action:
+- uncommitted_work: (commit intended changes before cross-machine transfer)
+- required_review_pending:
+- receiving_machine_checks:
+
+The receiver checks the commit and acceptance before editing. Never treat an
+ignored local handoff as already synced. See
+`.ai/workflows/subscription-scheduling.md` for sanitized transfer.

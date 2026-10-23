@@ -1,4 +1,4 @@
-# Verify-first multi-agent orchestrator
+# Codex Plus / Claude Pro shared orchestrator
 
 Claude Code、Codex、将来追加するAgentを、モデルの序列ではなく共通の
 検証・handoff・routing規約で扱うためのSmall Coreです。
@@ -67,9 +67,9 @@ scripts/agent/record-completion.py \
   --passed 12
 ```
 
-## Initial assignment policy
+## Legacy initial assignment policy
 
-最初に試すPattern Cは、P2への交換可能なassignmentです。
+旧v1のPattern Cは、P2への交換可能なassignmentです。Plus / Proでは後述のv2を使います。
 
 ```text
 Codex: Plan / acceptance draft
@@ -89,3 +89,50 @@ Claude Code: Review findingsの修正
 - task eventの統計的ランキング
 
 これらは必要性が反復して確認されてからExtensionとして追加します。
+
+## Plus / Proで使う（v2）
+
+MacとUbuntuで成果物・プロジェクト知識・引き継ぎを共有し、CodexとClaude
+の担当を利用枠に応じて交換します。既存の検証・独立レビュー要件は維持します。
+
+- 作業一覧: `.ai/knowledge/work-queue.md`
+- 残量の手入力・担当候補の推薦: `scripts/agent/quota.py`
+- PC間の引き継ぎ: `.ai/workflows/subscription-scheduling.md`
+- 続行に必要な情報: handoffのResume checkpoint
+
+担当は固定しません。まず作業に適した候補を選び、その中で残量に余裕のある
+方へ割り当てます。残量はアカウント単位で扱い、調整役は1台に集約します。
+未取得・古い・リセット済みの残量は再確認を求めます。上限突破や追加購入、
+API呼び出し、自動でのエージェント起動は行いません。
+
+```bash
+python3 scripts/agent/quota.py --help
+python3 scripts/agent/quota.py select --candidates codex claude
+scripts/agent/verify-change.sh full
+```
+
+利用条件: macOS / Ubuntu、Bash 3.2以上、Python 3.9以上。
+新規タスクのroutingには`--policy-version v2`を使います。
+skills・個人メモリの同期、残量の自動取得、無人運転は今後の拡張です。
+
+## GitHubレビューと、同じ指摘を繰り返さない仕組み
+
+PRには通常の自動チェックを用意し、AIレビューはCodexのGitHub連携を使います。
+有効化手順と未設定の範囲は`.ai/workflows/github-review.md`に記載しています。
+CIファイルを置くだけではCodexの自動レビューは有効になりません。
+
+UIの指摘、レビューで発見した欠陥、作業失敗は`.ai/feedback/`に記録します。
+次回は対象パスに合う記録を読み、修正→検証→再発防止を回します。
+モデル自体の再学習ではなく、知識・ルール・テストを育てる方式です。
+
+```bash
+python3 scripts/agent/feedback.py --help
+python3 scripts/agent/feedback.py context --path src/settings/page.tsx
+python3 scripts/agent/feedback.py sync-github --repo OWNER/REPO --pr 123
+bash scripts/agent/verify-change.sh full
+```
+
+記録・昇格・廃止の例は`.ai/feedback/README.md`、日々の運用は
+`.ai/workflows/feedback-loop.md`を参照してください。サンプルのUI指摘を
+本当のユーザーの好みとして登録しないでください。GitHubの本文は未信頼の
+受信データとして扱い、検証せずに指示やルールへ昇格させません。

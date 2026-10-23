@@ -1,6 +1,7 @@
 # Change workflow
 
-1. Read the relevant knowledge, standards, and existing implementation.
+1. Read the relevant knowledge, standards, existing implementation, and scoped
+   feedback through `feedback-loop.md`. Record new user corrections before fixing.
 2. Build a reviewer bootstrap packet containing only task ID, requirement
    sources, risk, and scope.
 3. Derive acceptance from requirement sources before reading or writing an

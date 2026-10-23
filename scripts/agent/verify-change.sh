@@ -12,6 +12,8 @@ case "$mode" in
     ;;
   full)
     scripts/agent/check-agent-env.sh
+    python3 scripts/agent/feedback.py check
+    python3 -m unittest discover -s tests -p 'test_*.py'
     if [[ -x scripts/project/verify.sh ]]; then
       scripts/project/verify.sh
       echo "[PASS] project verification"
