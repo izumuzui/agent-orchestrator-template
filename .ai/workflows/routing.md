@@ -37,7 +37,7 @@ quota, rate limits, availability, and latency. Record:
 If no qualified candidate is available, wait, narrow scope, or return to the
 owner. Never lower quality or safety to consume spare quota.
 
-## Initial assignment policy: v1
+## Legacy initial assignment policy: v1
 
 | Role | Assignment |
 |---|---|
@@ -79,3 +79,16 @@ Check base conformance, then role-specific capability:
 
 An Agent that cannot provide fresh review is excluded only from the reviewer
 role, not automatically from every role.
+
+## Subscription assignment policy: v2
+
+For the Plus / Pro setup, planner, writer, and reviewer assignments are
+exchangeable after role qualification. Start with Codex writing and Claude
+reviewing, or reverse them when observed remaining capacity supports it.
+Fresh-context review remains required wherever the reservation says so.
+Use `--policy-version v2` for newly tracked tasks; keep existing v1 records.
+Use `subscription-scheduling.md` and `scripts/agent/quota.py` after reserving
+quality routing. Recommendations are advisory; they do not launch workers or
+change the reservation's review requirements. Freeze the actual assignment and
+fallback reason in the handoff. Never switch a running writer without a stopped
+writer and a resume checkpoint.

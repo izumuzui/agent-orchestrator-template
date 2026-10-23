@@ -19,8 +19,11 @@ Do not resolve a material contradiction by guessing.
 | Task shape | Workflow | Required evidence |
 |---|---|---|
 | Change or fix | `workflows/change.md` | acceptance + focused proof + common checks |
+| User corrections / UI feedback | `workflows/feedback-loop.md` | scoped source + expected behavior + verified prevention |
+| GitHub CI / native Codex review | `workflows/github-review.md` | actual CI and review results |
 | Independent review | `workflows/review.md` | source-first review + diff + verification evidence |
 | Multi-agent work | `workflows/orchestration.md` | bounded roles + one writer + final synthesis |
+| Subscription scheduling / cross-machine resume | `workflows/subscription-scheduling.md` | observed quota + stopped writer + checkpoint |
 | Role selection | `workflows/routing.md` | intended pattern + actual assignment + fallback reason |
 
 ## Before implementation

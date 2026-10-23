@@ -25,6 +25,15 @@ required=(
   scripts/agent/reserve-routing.py
   scripts/agent/record-completion.py
   scripts/agent/verify-change.sh
+  scripts/agent/quota.py
+  scripts/agent/feedback.py
+  .ai/feedback/README.md
+  .ai/feedback/entries/.gitkeep
+  .ai/workflows/feedback-loop.md
+  .ai/workflows/github-review.md
+  .github/workflows/verify.yml
+  .ai/workflows/subscription-scheduling.md
+  .ai/knowledge/work-queue.md
 )
 
 for path in "${required[@]}"; do
@@ -59,7 +68,7 @@ def safety_block(path: Path) -> str:
 if safety_block(root / "AGENTS.md") != safety_block(root / "CLAUDE.md"):
     raise SystemExit("[FAIL] AGENTS.md and CLAUDE.md safety blocks drifted")
 
-for script in ("reserve-routing.py", "record-completion.py"):
+for script in ("reserve-routing.py", "record-completion.py", "quota.py", "feedback.py"):
     path = root / "scripts" / "agent" / script
     ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
 
