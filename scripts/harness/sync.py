@@ -93,6 +93,16 @@ def current_hash(repo: Path, key: str) -> str | None:
     return sha(path.read_bytes()) if path.is_file() else None
 
 
+def adopted_elsewhere(repo: Path) -> bool:
+    """True when another local ref already contains the harness lock."""
+    try:
+        out = subprocess.run(["git", "-C", str(repo), "rev-list", "--all", "-1", "--", LOCK],
+                             capture_output=True, text=True, timeout=3).stdout.strip()
+        return bool(out)
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
 def status(repo: Path) -> dict:
     """Return {'state': ..., 'details': [...]} for one repository."""
     repo = repo.resolve()
@@ -102,6 +112,9 @@ def status(repo: Path) -> dict:
         return {"state": "exempt", "details": []}
     lock = read_lock(repo)
     if lock is None:
+        if adopted_elsewhere(repo):
+            return {"state": "unmerged",
+                    "details": ["this branch predates the harness; merge the adopting branch (usually main)"]}
         return {"state": "missing", "details": ["harness is not installed"]}
     if lock.get("invalid"):
         return {"state": "modified", "details": [f"{LOCK} is not valid JSON"]}
@@ -261,7 +274,7 @@ def main() -> int:
             print(f"{item['state']:<9} {name}")
             for detail in item["details"]:
                 print(f"          - {detail}")
-    bad = {"missing", "modified", "outdated"}
+    bad = {"missing", "unmerged", "modified", "outdated"}
     return 1 if any(item["state"] in bad for item in report.values()) else 0
 
 

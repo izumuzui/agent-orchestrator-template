@@ -125,6 +125,7 @@ class HarnessTests(unittest.TestCase):
         git(self.repo, "commit", "-q", "-m", "adopt")
         git(self.repo, "switch", "-q", "old-feature")
         self.assertFalse((self.repo / sync.LOCK).exists())
+        self.assertEqual(sync.status(self.repo)["state"], "unmerged")
         self.assertIsNone(self.edit(self.repo / "src/main.py"))
         start = self.hook({"hook_event_name": "SessionStart", "cwd": str(self.repo)})
         self.assertIn("別のブランチでは導入済み", start["hookSpecificOutput"]["additionalContext"])

@@ -15,7 +15,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -54,18 +53,6 @@ def nearest_existing(path: Path) -> Path:
     return path
 
 
-def ever_adopted(repo: Path) -> bool:
-    """True when any local ref already contains the harness lock."""
-    try:
-        out = subprocess.run(
-            ["git", "-C", str(repo), "rev-list", "--all", "-1", "--", sync.LOCK],
-            capture_output=True, text=True, timeout=3,
-        ).stdout.strip()
-        return bool(out)
-    except (OSError, subprocess.SubprocessError):
-        return False
-
-
 def emit(event: str, **fields) -> None:
     print(json.dumps({"hookSpecificOutput": {"hookEventName": event, **fields}}, ensure_ascii=False))
 
@@ -89,7 +76,7 @@ def session_start(data: dict) -> None:
     if state["state"] in ("exempt",):
         return
     lines = [f"[agent-harness] repository={name} state={state['state']}"]
-    if state["state"] in ("synced", "source", "outdated", "modified"):
+    if state["state"] in ("synced", "source", "outdated", "modified", "unmerged"):
         lines.append("作業前に AGENTS.md の HARNESS ブロック、.ai/README.md、.ai/project.md を読み、"
                      "そのタスクルーティング・acceptance・検証契約（scripts/agent/verify-change.sh）に従うこと。"
                      "管理ファイル（.ai/harness.lock.json に列挙）はこのリポジトリで直接編集せず、テンプレート側で変更して sync する。")
@@ -97,14 +84,13 @@ def session_start(data: dict) -> None:
         lines.append(f"テンプレートが更新されている。ユーザーに `{SYNC_CMD} sync {repo}` の実行を提案すること。")
     if state["state"] == "modified":
         lines.append("管理ファイルがローカルで編集されている。内容をプロジェクト所有スロットへ移すか、テンプレートへ反映するよう報告すること。")
+    if state["state"] == "unmerged":
+        lines.append("このブランチにはまだハーネスが無いが、別のブランチでは導入済み。"
+                     "ユーザーへ導入済みブランチ（通常 main）の取り込みを提案し、"
+                     "それまでも同じ規約（acceptance → 実装 → verify → 独立レビュー）で作業すること。")
     if state["state"] == "missing":
-        if ever_adopted(repo):
-            lines.append("このブランチにはまだハーネスが無いが、別のブランチでは導入済み。"
-                         "編集前にユーザーへ導入済みブランチ（通常 main）の取り込みを提案し、"
-                         "それまでも同じ規約（acceptance → 実装 → verify → 独立レビュー）で作業すること。")
-        else:
-            lines.append(f"ハーネス未導入のため、ファイル編集はフックで拒否される。"
-                         f"まず `{SYNC_CMD} install {repo}` で導入し、プロジェクト所有スロットを埋めること。")
+        lines.append(f"ハーネス未導入のため、ファイル編集はフックで拒否される。"
+                     f"まず `{SYNC_CMD} install {repo}` で導入し、プロジェクト所有スロットを埋めること。")
     for detail in state["details"][:8]:
         lines.append(f"- {detail}")
     emit("SessionStart", additionalContext="\n".join(lines))
@@ -141,7 +127,7 @@ def pre_tool_use(data: dict) -> None:
         lock = sync.read_lock(repo)
         rel = path.relative_to(repo).as_posix()
         if lock is None:
-            if ever_adopted(repo):
+            if sync.adopted_elsewhere(repo):
                 continue
             emit("PreToolUse", permissionDecision="deny", permissionDecisionReason=(
                 f"[agent-harness] {repo.name} はハーネス未導入です。編集前に "
