@@ -16,13 +16,21 @@ implementation. A required environment-blocked check makes the overall status
 ## Standard entry point
 
 ```bash
-scripts/agent/verify-change.sh agent-env
-scripts/agent/verify-change.sh full
+scripts/agent/verify-change.sh agent-env   # harness integrity only
+scripts/agent/verify-change.sh ci          # harness gate + project `ci` mode
+scripts/agent/verify-change.sh full        # harness gate + project `full` mode
+scripts/agent/verify-change.sh <mode>      # project-specific mode
 ```
 
-`agent-env` validates this shared environment. `full` also runs
-`scripts/project/verify.sh` when a project supplies it; otherwise the project
-check is reported as a non-required skip.
+`agent-env` validates the shared environment. `ci` and `full` also run the
+harness regression tests and `scripts/project/verify.sh <mode>`. Product
+checks and extra modes are declared in `.ai/verification/project.md`.
+
+`scripts/project/verify.sh` contract: exit 0 when every check it ran passed,
+exit 3 when a required check could not run in this environment (report it as
+`blocked`), any other non-zero exit when a check failed. Without the script,
+product verification is reported as `[SKIPPED]` and the result must not be
+presented as a verified product change.
 
 During iteration, run the smallest focused proof first. Before completion, run
 the applicable full proof. Report actual commands and results separately as:

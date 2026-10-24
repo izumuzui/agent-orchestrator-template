@@ -19,4 +19,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Run common verification gate
-        run: bash scripts/agent/verify-change.sh full
+        run: bash scripts/agent/verify-change.sh ci

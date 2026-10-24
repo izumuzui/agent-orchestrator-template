@@ -28,6 +28,7 @@ still require explicit human approval even after review.
 
 ## Repository overlay
 
-Fill this section before using the template in a product repository. Add risks
-specific to its data, infrastructure, activation, rollback, and compatibility
-boundaries. Keep the overlay in this one authoritative location.
+Repository-specific risks live in `.ai/standards/security-overlay.md`
+(project-owned). Read it before classifying risk. An empty overlay means the
+repository has not been classified yet: treat its data, infrastructure, and
+external-state changes as high-risk until it is filled.

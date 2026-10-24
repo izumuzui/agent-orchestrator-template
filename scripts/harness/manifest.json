@@ -1,0 +1,43 @@
+{
+  "schema": "agent-harness-manifest/v1",
+  "adapter_blocks": ["AGENTS.md", "CLAUDE.md"],
+  "managed": [
+    ".ai/README.md",
+    ".ai/standards/security.md",
+    ".ai/verification/common.md",
+    ".ai/workflows/change.md",
+    ".ai/workflows/review.md",
+    ".ai/workflows/github-review.md",
+    ".ai/workflows/orchestration.md",
+    ".ai/workflows/routing.md",
+    ".ai/workflows/feedback-loop.md",
+    ".ai/workflows/subscription-scheduling.md",
+    ".ai/handoffs/template.md",
+    ".ai/metrics/schema.md",
+    ".ai/feedback/README.md",
+    ".github/workflows/agent-verify.yml",
+    "scripts/agent/check-agent-env.sh",
+    "scripts/agent/verify-change.sh",
+    "scripts/agent/create-handoff.sh",
+    "scripts/agent/record-completion.py",
+    "scripts/agent/reserve-routing.py",
+    "scripts/agent/quota.py",
+    "scripts/agent/feedback.py",
+    "scripts/agent/tests/test_quota.py",
+    "scripts/agent/tests/test_feedback.py"
+  ],
+  "seeded": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".ai/project.md",
+    ".ai/standards/security-overlay.md",
+    ".ai/verification/project.md",
+    ".ai/knowledge/repository-map.md",
+    ".ai/knowledge/decisions.md",
+    ".ai/knowledge/work-queue.md",
+    ".ai/feedback/entries/.gitkeep",
+    ".github/pull_request_template.md",
+    "scripts/project/verify.sh"
+  ],
+  "gitignore": ["/.agent-state/"]
+}

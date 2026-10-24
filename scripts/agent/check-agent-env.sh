@@ -5,21 +5,30 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
 required=(
-  README.md
   AGENTS.md
   CLAUDE.md
   .gitignore
   .ai/README.md
+  .ai/project.md
+  .ai/standards/security.md
+  .ai/standards/security-overlay.md
+  .ai/verification/common.md
+  .ai/verification/project.md
   .ai/knowledge/repository-map.md
   .ai/knowledge/decisions.md
-  .ai/standards/security.md
-  .ai/verification/common.md
+  .ai/knowledge/work-queue.md
   .ai/workflows/change.md
   .ai/workflows/review.md
   .ai/workflows/routing.md
   .ai/workflows/orchestration.md
+  .ai/workflows/feedback-loop.md
+  .ai/workflows/github-review.md
+  .ai/workflows/subscription-scheduling.md
   .ai/handoffs/template.md
   .ai/metrics/schema.md
+  .ai/feedback/README.md
+  .ai/feedback/entries/.gitkeep
+  .github/workflows/agent-verify.yml
   scripts/agent/check-agent-env.sh
   scripts/agent/create-handoff.sh
   scripts/agent/reserve-routing.py
@@ -27,13 +36,8 @@ required=(
   scripts/agent/verify-change.sh
   scripts/agent/quota.py
   scripts/agent/feedback.py
-  .ai/feedback/README.md
-  .ai/feedback/entries/.gitkeep
-  .ai/workflows/feedback-loop.md
-  .ai/workflows/github-review.md
-  .github/workflows/verify.yml
-  .ai/workflows/subscription-scheduling.md
-  .ai/knowledge/work-queue.md
+  scripts/agent/tests/test_quota.py
+  scripts/agent/tests/test_feedback.py
 )
 
 for path in "${required[@]}"; do
@@ -47,12 +51,14 @@ python3 - "$ROOT" <<'PY'
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import re
 import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
+harness_block = re.compile(r"<!-- HARNESS:START -->\n.*?<!-- HARNESS:END -->\n?", re.DOTALL)
 
 def safety_block(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
@@ -65,6 +71,10 @@ def safety_block(path: Path) -> str:
         raise SystemExit(f"[FAIL] missing safety block: {path.name}")
     return match.group(1)
 
+for adapter in ("AGENTS.md", "CLAUDE.md"):
+    if not harness_block.search((root / adapter).read_text(encoding="utf-8")):
+        raise SystemExit(f"[FAIL] missing managed harness block: {adapter}")
+
 if safety_block(root / "AGENTS.md") != safety_block(root / "CLAUDE.md"):
     raise SystemExit("[FAIL] AGENTS.md and CLAUDE.md safety blocks drifted")
 
@@ -72,18 +82,41 @@ for script in ("reserve-routing.py", "record-completion.py", "quota.py", "feedba
     path = root / "scripts" / "agent" / script
     ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
 
-reference_pattern = re.compile(r"`((?:\.ai|scripts/agent)/[^`\s]+)`")
-reference_files = [root / "README.md", root / "AGENTS.md", root / "CLAUDE.md"]
+reference_pattern = re.compile(r"`((?:\.ai|scripts/agent|scripts/project)/[^`\s]+)`")
+optional_slots = {"scripts/project/check.sh", ".ai/harness.lock.json"}  # lock is absent in the template itself
+reference_files = [root / "AGENTS.md", root / "CLAUDE.md"]
+if (root / "README.md").is_file():
+    reference_files.append(root / "README.md")
 reference_files.extend((root / ".ai").rglob("*.md"))
 for source in reference_files:
     for target in reference_pattern.findall(source.read_text(encoding="utf-8")):
         target = target.rstrip(".,;:")
-        if "<" in target or "{{" in target:
+        if "<" in target or "{{" in target or "*" in target or "/local" in target:
+            continue
+        if target in optional_slots:
             continue
         if not (root / target).exists():
             raise SystemExit(
                 f"[FAIL] broken local reference in {source.relative_to(root)}: {target}"
             )
+
+lock_path = root / ".ai" / "harness.lock.json"
+if lock_path.is_file():
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    for key, want in lock.get("files", {}).items():
+        if key.endswith("#harness-block"):
+            match = harness_block.search((root / key.split("#", 1)[0]).read_text(encoding="utf-8"))
+            text = match.group(0) if match else ""
+            data = (text if text.endswith("\n") else text + "\n").encode()
+        else:
+            path = root / key
+            data = path.read_bytes() if path.is_file() else b""
+        if hashlib.sha256(data).hexdigest() != want:
+            raise SystemExit(
+                f"[FAIL] managed harness file edited in place: {key} "
+                "(change agent-orchestrator-template and sync)"
+            )
+    print("[PASS] managed harness files match .ai/harness.lock.json")
 
 event_path = root / ".agent-state" / "metrics" / "task-events.jsonl"
 prohibited = {"prompt", "content", "transcript", "terminal_output", "secret", "private_path"}
@@ -113,7 +146,7 @@ if event_path.exists():
                 raise SystemExit(f"[FAIL] duplicate completion for {task_id}")
             seen_completions.add(task_id)
 
-print("[PASS] adapter safety parity, Python syntax, local references, and task-event integrity")
+print("[PASS] adapter blocks and safety parity, Python syntax, local references, and task-event integrity")
 PY
 
 if ! git check-ignore -q .agent-state/probe; then
@@ -130,3 +163,8 @@ bash -n scripts/agent/check-agent-env.sh \
   scripts/agent/create-handoff.sh scripts/agent/verify-change.sh
 
 echo "[PASS] private state ignore and shell syntax"
+
+if [[ -x scripts/project/check.sh ]]; then
+  scripts/project/check.sh
+  echo "[PASS] project agent-environment checks"
+fi

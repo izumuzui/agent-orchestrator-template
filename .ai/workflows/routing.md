@@ -92,3 +92,26 @@ quality routing. Recommendations are advisory; they do not launch workers or
 change the reservation's review requirements. Freeze the actual assignment and
 fallback reason in the handoff. Never switch a running writer without a stopped
 writer and a resume checkpoint.
+
+## Default assignment policy: v3
+
+Default for newly tracked tasks. Claude plans and implements; Codex tests and
+fixes. Each provider's output is reviewed by the other.
+
+| Role | Assignment |
+|---|---|
+| Planner / acceptance draft / role split | Claude Code capability profile |
+| Writer (implementation) | Claude Code capability profile |
+| Review of Claude's output | fresh Codex capability profile |
+| Test / fix | Codex capability profile |
+| Review of Codex's output (tests and fixes) | fresh Claude Code capability profile |
+
+- Still one writer at a time. Implementation to test/fix is a writer handoff:
+  stop the Claude writer, write a checkpoint, then start the Codex writer.
+- Review is always cross-provider (`--reviewer-relation cross_provider`).
+  Fresh same-provider review is a recorded fallback only when the other
+  provider is unavailable; never skip review to save quota.
+- Quality roles above override quota recommendations. Quota may delay a step
+  or narrow scope but must not swap providers inside a role.
+- Use `--policy-version v3`; keep existing v1/v2 records.
+

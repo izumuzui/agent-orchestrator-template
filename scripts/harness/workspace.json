@@ -1,0 +1,5 @@
+{
+  "root": "~/work",
+  "exempt": ["notes"],
+  "guarded_tools": ["Edit", "Write", "MultiEdit", "NotebookEdit", "apply_patch"]
+}
