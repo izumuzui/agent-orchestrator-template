@@ -14,6 +14,7 @@ Record durable decisions, not transcripts or hidden reasoning.
 
 | 2026-10-24 | Native Codex review plus secret-free CI; scoped corrections become lessons only after evidence and prevention are recorded | active | recurring defects, stale lessons, or review integration changes |
 | 2026-10-24 | This template is the single source for every repository under ~/work; managed files are synced with hash locks and enforced by a global fail-open guard hook | active | guard blocks legitimate work or a repo needs a divergent core |
+| 2026-10-25 | v3 default: Claude plans/implements, Codex tests/fixes, each reviewed cross-provider by the other | active | 10 terminal v3 task events or model/contract change |
 
 At each checkpoint, record what changed, what evidence supported it, and the
 next review trigger. Do not use review finding counts as a success metric.

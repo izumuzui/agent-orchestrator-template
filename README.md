@@ -142,7 +142,7 @@ scripts/agent/verify-change.sh full
 ```
 
 利用条件: macOS / Ubuntu、Bash 3.2以上、Python 3.9以上。
-新規タスクのroutingには`--policy-version v2`を使います。
+新規タスクのroutingには`--policy-version v3`を使います（Claudeが計画・実装、Codexがテスト・修正、相互にクロスレビュー。詳細は`.ai/workflows/routing.md`）。
 skills・個人メモリの同期、残量の自動取得、無人運転は今後の拡張です。
 
 ## GitHubレビューと、同じ指摘を繰り返さない仕組み
