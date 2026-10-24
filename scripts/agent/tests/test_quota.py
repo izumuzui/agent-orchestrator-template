@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 from datetime import datetime, timedelta, timezone
 
-spec = importlib.util.spec_from_file_location('quota', Path(__file__).resolve().parents[1] / 'scripts/agent/quota.py')
+spec = importlib.util.spec_from_file_location('quota', Path(__file__).resolve().parents[3] / 'scripts/agent/quota.py')
 quota = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(quota)
 

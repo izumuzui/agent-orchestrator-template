@@ -2,7 +2,7 @@
 
 ## What runs where
 
-- `.github/workflows/verify.yml`: deterministic common gate on PRs and main pushes.
+- `.github/workflows/agent-verify.yml`: deterministic common gate on PRs and main pushes.
   GitHub-hosted runner, read-only token, no model/API credentials, timeout and
   concurrency cap. GitHub Actions billing/limits still apply to the repository.
 - Native Codex review: enable the repository separately in Codex code-review

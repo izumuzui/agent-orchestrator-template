@@ -20,7 +20,7 @@ Claude Code、Codex、将来追加するAgentを、モデルの序列ではな�
 ## Structure
 
 ```text
-AGENTS.md / CLAUDE.md        Tool adapters and always-on safety rules
+AGENTS.md / CLAUDE.md       Managed harness block + project rules
 .ai/knowledge/              Stable facts and decision journal
 .ai/standards/              Invariants and repository risk overlay
 .ai/verification/           Definition of verified completion
@@ -28,16 +28,46 @@ AGENTS.md / CLAUDE.md        Tool adapters and always-on safety rules
 .ai/handoffs/               Versioned handoff template only
 .ai/metrics/                Event schema; actual events stay outside Git
 .agent-state/               Ignored task snapshots and event journal
-scripts/agent/              Deterministic checks and state helpers
+scripts/agent/              Deterministic checks and state helpers (managed)
+scripts/harness/            Sync, guard hook, manifest, seeds (template only)
+scripts/project/            Project-owned product verification
 ```
+
+## ~/work 全体への導入と同期
+
+このリポジトリは `~/work` 以下の全プロジェクトのハーネスの正本です。
+各リポジトリには管理ファイルをコピーし、`.ai/harness.lock.json` にハッシュを記録します。
+
+```bash
+python3 scripts/harness/sync.py status                       # 全リポジトリの状態
+python3 scripts/harness/sync.py install ~/work/<repo> --dry-run
+python3 scripts/harness/sync.py install ~/work/<repo>        # 導入
+python3 scripts/harness/sync.py sync ~/work/<repo>           # テンプレート更新の反映
+```
+
+- 管理ファイル（`scripts/harness/manifest.json` の `managed`）は上書き同期。
+  プロジェクトで直接編集されていると同期を拒否し、差分を表示します。
+- 初期ファイル（`seeded`）は無い時だけ作り、以後はプロジェクト所有です。
+- `AGENTS.md` / `CLAUDE.md` は `<!-- HARNESS:START -->` 〜 `<!-- HARNESS:END -->`
+  だけを置き換え、プロジェクト固有のルールは残します。
+- commit・push は行いません。導入後に各プロジェクトのスロットを埋めて検証・レビューします。
+
+強制はグローバルフック `scripts/harness/guard.py` で行います（Claude Code と Codex 共通）。
+
+- SessionStart: リポジトリのハーネス状態と読む順番を文脈に注入
+- PreToolUse（Edit / Write / apply_patch など）: 未導入リポジトリの編集と、
+  管理ファイルの直接編集を拒否。導入済みリポジトリの古いブランチは警告のみ
+- 対象は `scripts/harness/workspace.json` の `root`、除外は `exempt`（既定: `notes`）
+- 一時的に外す: `AGENT_HARNESS_GUARD=off`。内部エラー時は fail open
 
 ## Start using it
 
 1. `.ai/knowledge/repository-map.md` を対象repositoryに合わせて更新する。
 2. `.ai/standards/security.md` のrepository overlayを埋める。
 3. `.ai/workflows/routing.md` のassignment policyを契約と利用可能Agentに合わせる。
-4. `scripts/agent/check-agent-env.sh` を実行する。
-5. taskごとにhandoffを作り、routingを予約する。
+4. `scripts/project/verify.sh` に実際のlint/test/buildを書く（`.ai/verification/project.md`）。
+5. `scripts/agent/check-agent-env.sh` を実行する。
+6. taskごとにhandoffを作り、routingを予約する。
 
 ```bash
 scripts/agent/create-handoff.sh
