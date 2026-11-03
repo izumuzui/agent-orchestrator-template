@@ -243,6 +243,158 @@ def sync(repo: Path, force: bool, dry_run: bool) -> int:
     return 0
 
 
+def git_out(repo: Path, *args: str) -> str | None:
+    try:
+        proc = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return proc.stdout.strip() if proc.returncode == 0 else None
+
+
+def default_refs(repo: Path) -> tuple[str, list[str]] | None:
+    """Default branch name and its existing local/remote refs."""
+    head = git_out(repo, "symbolic-ref", "--short", "refs/remotes/origin/HEAD")
+    names = [head.split("/", 1)[1]] if head and "/" in head else []
+    for name in names + ["main", "master"]:
+        refs = [ref for ref in (name, f"origin/{name}")
+                if git_out(repo, "rev-parse", "--verify", "-q", f"{ref}^{{commit}}") is not None]
+        if refs:
+            return name, refs
+    return None
+
+
+TASK_ID = re.compile(r"[A-Za-z0-9_-]{1,128}")
+TASK_EVENTS = {"routing_reserved", "task_completed"}
+REVIEW_RELATIONS = {"none", "fresh_same", "cross_provider"}
+
+
+def parse_ts(value: object) -> dt.datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        ts = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return ts if ts.tzinfo else ts.replace(tzinfo=dt.timezone.utc)
+
+
+def valid_event(event: object) -> bool:
+    """Shape check so that only opaque IDs and enums reach the report."""
+    if not (isinstance(event, dict) and isinstance(event.get("event"), str)
+            and event["event"] in TASK_EVENTS and isinstance(event.get("task_id"), str)
+            and TASK_ID.fullmatch(event["task_id"]) and isinstance(event.get("calibration"), bool)):
+        return False
+    if event["event"] == "routing_reserved":
+        return parse_ts(event.get("ts")) is not None
+    return isinstance(event.get("reviewer_relation"), str) and event["reviewer_relation"] in REVIEW_RELATIONS
+
+
+def read_events(repo: Path) -> tuple[list[dict], int]:
+    """Valid task events plus the count of skipped lines. Raises OSError when unreadable."""
+    path = repo / ".agent-state/metrics/task-events.jsonl"
+    events, malformed = [], 0
+    if not path.is_file():
+        return events, malformed
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            # ValueError covers bad JSON and oversized integers; deep nesting raises RecursionError.
+            event = json.loads(line)
+            ok = valid_event(event)
+        except (ValueError, RecursionError, TypeError):
+            ok = False
+        if ok:
+            events.append(event)
+        else:
+            malformed += 1
+    return events, malformed
+
+
+def health(repo: Path, stale_days: int, now: dt.datetime | None = None,
+           calibration_size: int = 10, checkpoint_every: int = 10) -> dict:
+    """Read-only operating report: sync state, task-event bookkeeping, Git hygiene."""
+    repo = repo.resolve()
+    now = now or dt.datetime.now(dt.timezone.utc)
+    report: dict = {"state": status(repo)["state"], "warnings": []}
+    warn = report["warnings"].append
+    if report["state"] in {"missing", "unmerged", "modified", "outdated"}:
+        warn(f"harness state is {report['state']}")
+
+    linked = (repo / ".git").is_file()
+    if linked:
+        common = git_out(repo, "rev-parse", "--path-format=absolute", "--git-common-dir")
+        report["worktree_of"] = Path(common).parent.name if common else "unknown"
+    else:
+        listing = git_out(repo, "worktree", "list", "--porcelain") or ""
+        prunable = sum(1 for line in listing.splitlines() if line.startswith("prunable"))
+        report["prunable_worktrees"] = prunable
+        if prunable:
+            warn(f"{prunable} prunable worktree(s); run git worktree prune")
+
+    if (repo / LOCK).is_file() and not is_source(repo):
+        base = default_refs(repo)
+        # Adopted once either the local or the remote default branch carries the lock,
+        # so a stale local branch alone does not raise the warning.
+        if base and all(git_out(repo, "cat-file", "-e", f"{ref}:{LOCK}") is None for ref in base[1]):
+            warn(f"harness adoption is not merged into {base[0]}")
+
+    try:
+        events, malformed = read_events(repo)
+    except OSError:
+        events, malformed = [], 0
+        warn("task-event journal is unreadable")
+    reserved = {e["task_id"]: e for e in events if e["event"] == "routing_reserved"}
+    completed = {e["task_id"]: e for e in events if e["event"] == "task_completed"}
+    open_ids = sorted(set(reserved) - set(completed))
+    stale = []
+    for task_id in open_ids:
+        ts = parse_ts(reserved[task_id].get("ts"))
+        if ts and (now - ts).days >= stale_days:
+            stale.append(task_id)
+    done = len(completed)
+    report["tasks"] = {
+        "reserved": len(reserved),
+        "completed": done,
+        "reserved_ids": sorted(reserved),
+        "completed_ids": sorted(completed),
+        "open": open_ids,
+        "stale_open": stale,
+        "malformed_lines": malformed,
+        "calibration_completed": sum(1 for e in completed.values() if e.get("calibration") is True),
+        "calibration_size": calibration_size,
+        "next_checkpoint": (done // checkpoint_every + 1) * checkpoint_every,
+        "cross_provider_reviews": sum(1 for e in completed.values()
+                                      if e.get("reviewer_relation") == "cross_provider"),
+    }
+    if stale:
+        warn(f"{len(stale)} reservation(s) open for {stale_days}+ days without task_completed")
+    if malformed:
+        warn(f"{malformed} malformed task-event line(s) skipped")
+    return report
+
+
+def print_health(name: str, item: dict) -> None:
+    label = item["state"] + (f", worktree of {item['worktree_of']}" if "worktree_of" in item else "")
+    print(f"{name} ({label})")
+    tasks = item["tasks"]
+    if tasks["reserved"] or tasks["completed"]:
+        print(f"  tasks: reserved {tasks['reserved']}, completed {tasks['completed']}, "
+              f"open {len(tasks['open'])}")
+        print(f"  calibration: {tasks['calibration_completed']}/{tasks['calibration_size']} completed; "
+              f"next checkpoint at {tasks['next_checkpoint']} completed")
+        print(f"  cross-provider reviews: {tasks['cross_provider_reviews']}/{tasks['completed']}")
+        if tasks["completed_ids"]:
+            print(f"  completed: {', '.join(tasks['completed_ids'])}")
+        for task_id in tasks["open"]:
+            mark = " (stale)" if task_id in tasks["stale_open"] else ""
+            print(f"  open: {task_id}{mark}")
+    else:
+        print("  tasks: no task events")
+    for warning in item["warnings"]:
+        print(f"  ! {warning}")
+
+
 def workspace_repos() -> list[Path]:
     root = Path(os.path.expanduser(WORKSPACE["root"]))
     return sorted(p for p in root.iterdir() if (p / ".git").exists())
@@ -260,12 +412,29 @@ def main() -> int:
     cmd = sub.add_parser("status", help="report harness state (default: every repo in the workspace)")
     cmd.add_argument("repos", type=Path, nargs="*")
     cmd.add_argument("--json", action="store_true")
+    cmd = sub.add_parser("health", help="read-only operating report: task events, calibration, Git hygiene")
+    cmd.add_argument("repos", type=Path, nargs="*")
+    cmd.add_argument("--json", action="store_true")
+    cmd.add_argument("--stale-days", type=int, default=3,
+                     help="flag reservations open this many days without task_completed (default 3)")
     args = parser.parse_args()
 
     if args.command in ("install", "sync"):
         return sync(args.repo, args.force, args.dry_run)
 
     repos = args.repos or workspace_repos()
+    if args.command == "health":
+        if args.stale_days < 0:
+            parser.error("--stale-days must not be negative")
+        report = {str(r.resolve().name): health(r, args.stale_days) for r in repos
+                  if r.resolve().name not in WORKSPACE.get("exempt", [])}
+        if args.json:
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+        else:
+            for name, item in report.items():
+                print_health(name, item)
+        return 1 if any(item["warnings"] for item in report.values()) else 0
+
     report = {str(r.resolve().name): status(r) for r in repos}
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))

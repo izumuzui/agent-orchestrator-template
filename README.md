@@ -43,7 +43,13 @@ python3 scripts/harness/sync.py status                       # 全リポジト�
 python3 scripts/harness/sync.py install ~/work/<repo> --dry-run
 python3 scripts/harness/sync.py install ~/work/<repo>        # 導入
 python3 scripts/harness/sync.py sync ~/work/<repo>           # テンプレート更新の反映
+python3 scripts/harness/sync.py health                       # 運用状況（読み取りのみ）
 ```
+
+`health` は各リポジトリについて、同期状態、`task-events.jsonl` の予約・完了・未完了
+（`--stale-days` 日以上前のものに印）、校正の進捗（完了/10）、次の見直し時点、
+クロスプロバイダレビューの件数、既定ブランチへの未マージ導入、worktree の種別と
+`prunable` の数を表示します。警告があると終了コード 1、`--json` で機械可読です。
 
 - 管理ファイル（`scripts/harness/manifest.json` の `managed`）は上書き同期。
   プロジェクトで直接編集されていると同期を拒否し、差分を表示します。
