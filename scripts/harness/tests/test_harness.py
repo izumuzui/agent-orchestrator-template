@@ -144,6 +144,127 @@ class HarnessTests(unittest.TestCase):
             self.assertEqual(guard.main(), 0)
         self.assertEqual(out.getvalue(), "")
 
+    def commit_base(self):
+        git(self.repo, "config", "user.email", "t@example.com")
+        git(self.repo, "config", "user.name", "t")
+        git(self.repo, "add", "AGENTS.md")
+        git(self.repo, "commit", "-q", "-m", "base")
+        git(self.repo, "branch", "-M", "main")
+
+    def write_events(self, *lines):
+        path = self.repo / ".agent-state/metrics/task-events.jsonl"
+        path.parent.mkdir(parents=True)
+        path.write_text("".join((l if isinstance(l, str) else json.dumps(l)) + "\n" for l in lines))
+
+    def run_main(self, *argv):
+        out = io.StringIO()
+        with patch("sys.argv", ["sync.py", *argv]), contextlib.redirect_stdout(out), \
+                contextlib.redirect_stderr(io.StringIO()):
+            code = sync.main()
+        return code, out.getvalue()
+
+    def test_health_reports_task_bookkeeping(self):
+        self.run_sync()
+        reserve = lambda tid, ts, cal=True: {"event": "routing_reserved", "task_id": tid, "ts": ts,
+                                             "calibration": cal}
+        self.write_events(
+            reserve("done-cross", "2026-11-01T00:00:00Z"),
+            {"event": "task_completed", "task_id": "done-cross", "calibration": True,
+             "reviewer_relation": "cross_provider"},
+            reserve("done-same", "2026-11-01T00:00:00Z", cal=False),
+            {"event": "task_completed", "task_id": "done-same", "calibration": False,
+             "reviewer_relation": "fresh_same"},
+            reserve("old-open", "2026-10-25T00:00:00Z"),
+            reserve("new-open", "2026-11-02T12:00:00Z"),
+            "{not json",
+            "[1, 2]",
+            {"event": "routing_reserved", "task_id": "private text\nline", "ts": "2026-10-01T00:00:00Z"},
+            {"event": "routing_reserved", "task_id": "no-ts", "calibration": True},
+            {"event": [], "task_id": "a"},
+            '{"event": "task_completed", "n": ' + "1" * 5000 + "}",
+            "[" * 100000 + "]" * 100000,
+            {"event": "task_completed", "task_id": "old-open"},
+            {"event": "task_completed", "task_id": "old-open", "calibration": True, "reviewer_relation": []},
+        )
+        now = sync.dt.datetime(2026, 11, 3, tzinfo=sync.dt.timezone.utc)
+        before = sorted(p.relative_to(self.repo) for p in self.repo.rglob("*"))
+        tasks = sync.health(self.repo, stale_days=3, now=now)["tasks"]
+        self.assertEqual(sorted(p.relative_to(self.repo) for p in self.repo.rglob("*")), before)
+        self.assertEqual((tasks["reserved"], tasks["completed"]), (4, 2))
+        self.assertEqual(tasks["open"], ["new-open", "old-open"])
+        self.assertEqual(tasks["stale_open"], ["old-open"])
+        self.assertEqual(tasks["malformed_lines"], 9)
+        self.assertEqual(tasks["completed_ids"], ["done-cross", "done-same"])
+        self.assertEqual(tasks["calibration_completed"], 1)
+        self.assertEqual(tasks["cross_provider_reviews"], 1)
+        self.assertEqual(tasks["next_checkpoint"], 10)
+        warnings = sync.health(self.repo, stale_days=3, now=now)["warnings"]
+        self.assertTrue(any("1 reservation(s) open" in w for w in warnings))
+        self.assertTrue(any("9 malformed" in w for w in warnings))
+
+    def test_health_clean_repo_exits_zero_and_json(self):
+        self.run_sync()
+        code, out = self.run_main("health", "--json", str(self.repo))
+        self.assertEqual(code, 0)
+        report = json.loads(out)["app"]
+        self.assertEqual(report["state"], "synced")
+        self.assertEqual(report["warnings"], [])
+        self.assertEqual(report["tasks"]["reserved"], 0)
+        code, out = self.run_main("health", str(self.repo / "missing-is-not-a-repo-but-path"))
+        self.assertEqual(code, 1)
+
+    def test_health_flags_unmerged_adoption(self):
+        self.commit_base()
+        git(self.repo, "switch", "-q", "-c", "adopt")
+        self.run_sync()
+        warnings = sync.health(self.repo, stale_days=3)["warnings"]
+        self.assertIn("harness adoption is not merged into main", warnings)
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-q", "-m", "adopt")
+        git(self.repo, "switch", "-q", "main")
+        git(self.repo, "merge", "-q", "adopt")
+        self.assertEqual(sync.health(self.repo, stale_days=3)["warnings"], [])
+
+    def test_health_accepts_adoption_on_remote_default_with_stale_local(self):
+        self.commit_base()
+        git(self.repo, "switch", "-q", "-c", "adopt")
+        self.run_sync()
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-q", "-m", "adopt")
+        git(self.repo, "update-ref", "refs/remotes/origin/main", "adopt")
+        self.assertEqual(sync.health(self.repo, stale_days=3)["warnings"], [])
+
+    def test_health_survives_unreadable_journal(self):
+        self.run_sync()
+        self.write_events({"event": "routing_reserved", "task_id": "a", "ts": "2026-11-01T00:00:00Z"})
+        real = sync.Path.read_text
+
+        def deny(path, *args, **kwargs):
+            if path.name == "task-events.jsonl":
+                raise PermissionError("denied")
+            return real(path, *args, **kwargs)
+
+        with patch.object(sync.Path, "read_text", deny):
+            report = sync.health(self.repo, stale_days=3)
+        self.assertIn("task-event journal is unreadable", report["warnings"])
+        self.assertEqual(report["tasks"]["reserved"], 0)
+
+    def test_health_labels_worktrees_and_counts_prunable(self):
+        self.commit_base()
+        self.run_sync()
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-q", "-m", "adopt")
+        linked = self.root / "app-linked"
+        gone = self.root / "app-gone"
+        git(self.repo, "worktree", "add", "-q", str(linked), "-b", "side")
+        git(self.repo, "worktree", "add", "-q", str(gone), "-b", "gone")
+        subprocess.run(["rm", "-rf", str(gone)], check=True)
+        self.assertEqual(sync.health(linked, stale_days=3)["worktree_of"], "app")
+        main = sync.health(self.repo, stale_days=3)
+        self.assertNotIn("worktree_of", main)
+        self.assertEqual(main["prunable_worktrees"], 1)
+        self.assertIn("1 prunable worktree(s); run git worktree prune", main["warnings"])
+
 
 if __name__ == "__main__":
     unittest.main()
