@@ -1,18 +1,11 @@
-# Plus / Pro scheduling and cross-machine handoff
+# 利用枠の調整と端末間の引き継ぎ
 
-This extension targets Codex with ChatGPT Plus and Claude Code with Claude Pro.
-Use each tool's subscription login. API billing and additional usage purchases
-are separate choices; this extension never calls provider APIs, buys credits,
-launches agents, or changes billing settings.
+ChatGPT PlusのCodexとClaude ProのClaude Codeを、各ツールの契約ログインで使うための拡張。API課金や追加購入は別の判断であり、この仕組みは提供元API呼び出し、購入、自動起動、課金設定変更を行わない。
 
-## Observe, then recommend
+## 観測してから推薦する
 
-One account has one budget across Mac and Ubuntu. Run scheduling on one
-coordinator machine. Do not independently maintain quota snapshots on both
-machines or copy live state databases between them.
-
-Read the provider's usage display, then record remaining percentages (not used
-percentages) and each actual reset timestamp, including timezone:
+MacとUbuntuでも同じアカウントの枠は一つ。調整役は一台とし、両方で別々の残量管理をしたり稼働中の状態DBをコピーしたりしない。
+提供元の表示で使用率ではなく残率と実際のリセット時刻・タイムゾーンを確認し、次の形式で記録する。以下は架空例なので、そのまま登録せず実測値に置き換える。
 
 ```bash
 python3 scripts/agent/quota.py record codex session --remaining 65 --resets-at 2030-01-01T18:00:00+09:00
@@ -23,53 +16,22 @@ python3 scripts/agent/quota.py select --candidates codex claude
 python3 scripts/agent/quota.py show
 ```
 
-Dates and percentages above are illustrative: replace them with observed values.
-Do not run these example observations unchanged. If a weekly window is absent,
-leave it unknown; the conservative selector requests a refresh/manual decision.
-Never invent a 100% weekly budget to bypass that check.
+週次枠が不明なら未取得のままにし、100%と捏造しない。まず `routing.md` で適格な候補に絞る。
+推薦はセッション残率と週次残率の小さい方が最大の候補を選ぶ単純な目安で、トークン容量の比較でも完遂保証でもない。既定の予備枠10%、観測の有効期間60分は `--reserve-percent` と `--max-age-minutes` で変えられる。
+リセット時刻を過ぎたら満タンと推定せず再観測する。欠落・古い値・枯渇・未来日時は適格にしない。推薦なしなら待機、再確認、明示的な手動判断にする。レビュー条件を下げない。
+大きな作業後、割当前、別端末の利用後に更新する。直近の記録でも他の活動で変わりうる。推薦は利用枠や書き手の権利を予約しない。自動取得・自動交代・継続的なポーリングは行わない。
 
-First qualify providers for the role using `routing.md`; pass only those
-candidates. The selector recommends the largest minimum of session/week
-remaining percentages. This is a simple heuristic, not a comparison of token
-capacity or a promise that a task will fit. Default reserve is 10%; observations
-expire after 60 minutes. Configure with `--reserve-percent` and
-`--max-age-minutes`. At a passed reset timestamp, observe again rather than
-assuming a refill. Missing, stale, exhausted, or future-dated observations do
-not qualify. A null recommendation means wait, refresh, or make an explicit
-manual scheduling decision; never silently lower review requirements.
+## 作業一覧
 
-Refresh after substantial work, before dispatch, and when another PC uses the
-account. Account activity elsewhere can make even recent observations inaccurate.
-Recommendations do not reserve capacity and do not grant a writer lease.
-The initial version intentionally has no automatic quota scraping or automatic
-provider switching. No continuous token-consuming polling is needed.
+プロジェクトごとの `.ai/knowledge/work-queue.md` に安全なID、範囲、受入基準、優先度、状態を残す。実装・レビュー・調査・文書作業を用意し、独立作業は別ブランチや別作業場所へ分ける。一つの場所には一人の書き手だけを置く。枠を使うために両ツールへ同じ問題を重複依頼しない。
 
-## Useful work queue
+## 端末や提供元を交代する
 
-Maintain a sanitized, Git-tracked `.ai/knowledge/work-queue.md` per project, listing task ID, scope, acceptance, priority, and
-status. Keep implementation, review, investigation, and documentation tasks
-available. Assign independent work to separate branches/checkouts. Within one
-checkout, keep exactly one writer. Do not repeatedly ask both tools to solve
-the same task solely to spend unused allowance.
+1. まとまった再開地点まで進め、実行可能な検証の実際の結果を記録する。
+2. 引き継ぎの再開欄へ相対パス、ブランチ、コミット、次の操作、障害、担当、レビュー条件を記入する。
+3. 受け手の編集前に旧書き手を明示的に止める。
+4. 意図した変更を作業ブランチへコミットし、承認済みのGitリモートや非公開経路で渡す。プッシュにはユーザー許可が必要で、推薦は許可にならない。
+5. `.agent-state/` の引き継ぎと利用枠はGitで移らない。共有する場合は `.ai/handoffs/<task-id>.md` へ安全な要約を手動で作り、レビューして再開地点に含める。認証情報、生ログ、端末パス、利用枠状態は共有しない。
+6. 受け手はコミットと条件を確認し、必要な検証を再実行して書き手を引き受け、記録した次の作業を進める。
 
-## Move work from Mac to Ubuntu (or between providers)
-
-1. Finish a coherent checkpoint, run available proof, and record actual results.
-2. Fill the handoff's Resume checkpoint with repository-relative paths, branch,
-   commit, next action, blockers, current writer, and review requirements.
-3. Stop the previous writer explicitly before the receiver starts editing.
-4. Commit intended source changes to a task branch. Transfer through the
-   project's approved Git remote or another approved private channel. Pushing
-   requires the user's authorization; a scheduling recommendation is not it.
-5. Local handoffs and quota observations live in ignored `.agent-state/`.
-   They do not travel with Git. For a shareable handoff, manually sanitize a
-   copy into `.ai/handoffs/<task-id>.md`, review it, and include it with the
-   checkpoint. Never share credentials, raw logs, machine paths, or quota state.
-6. The receiver verifies the branch/commit and handoff, reruns relevant checks,
-   claims the writer role, and continues with the recorded next action.
-
-Do not copy `.git`, authentication files, or either product's complete home
-configuration as a synchronization mechanism. Resolve paths on each machine.
-Use Bash 3.2+ and Python 3.9+ on macOS/Linux; no extra Python packages are needed.
-Skills and shared personal memory synchronization are a separate extension;
-this version shares repository knowledge and sanitized handoffs only.
+`.git`、認証ファイル、各製品のホーム設定全体を同期手段にしない。各端末でパスを解決する。macOS/Linux、Bash 3.2以上、Python 3.9以上で追加Pythonパッケージは不要。スキル・個人メモリ同期は別拡張であり、ここでは知識と安全な引き継ぎだけを共有する。

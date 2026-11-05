@@ -1,18 +1,15 @@
-# Repository security overlay
+# このリポジトリ固有の安全基準
 
-## Private data
+## 非公開データ
 
-None stored here. Seeds and examples must stay generic; never copy a
-project's private overlay content into the template.
+ここに非公開データを保存しない。ひな形と例は汎用的にし、採用先の非公開設定をコピーしない。
 
-## Forbidden without explicit owner scope
+## 明示的な対象指定なしに行わないこと
 
-- Running `sync.py sync` against another repository's working tree that has
-  uncommitted work (use a separate worktree/branch).
-- Pushing, merging, or changing GitHub settings of adopted repositories.
-- Editing global agent configuration (`~/.claude`, `~/.codex`).
+- 未コミット変更がある他リポジトリへの同期。別の作業場所・ブランチを使う。
+- 採用先のプッシュ、マージ、GitHub設定変更。
+- `~/.claude` や `~/.codex` の全体設定変更。
 
-## External state and rollback
+## 外部状態と切り戻し
 
-The guard hook is global. Roll back by removing its entries from the global
-hook configuration or setting `AGENT_HARNESS_GUARD=off`.
+ガードが全体フックへ設定されている場合、切り戻しは設定から該当項目を外すか `AGENT_HARNESS_GUARD=off` とする。設定変更には通常の許可を得る。

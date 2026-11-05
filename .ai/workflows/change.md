@@ -1,28 +1,19 @@
-# Change workflow
+# 変更の手順
 
-1. Read the relevant knowledge, standards, existing implementation, and scoped
-   feedback through `feedback-loop.md`. Record new user corrections before fixing.
-2. Build a reviewer bootstrap packet containing only task ID, requirement
-   sources, risk, and scope.
-3. Derive acceptance from requirement sources before reading or writing an
-   implementation plan. Give each acceptance item a stable ID and source.
-4. Freeze `acceptance_version`, allowed scope, forbidden scope, proof, stop
-   condition, and retry bound in the handoff.
-5. Select the role pattern in `routing.md` and reserve routing before writing.
-6. Keep one writer. Explorers and reviewers remain read-only.
-7. Implement the smallest coherent slice and run focused proof.
-8. Run the common verification contract.
-9. If independent review is required, follow `review.md` in two stages.
-10. Apply accepted findings through the same writer and rerun affected proof.
-11. Check whether durable knowledge or routing policy needs an update.
-12. Record the terminal task event without free text or private content.
+1. 関連する知識・基準・実装と、`feedback-loop.md` に沿った対象別の教訓を読む。新しい訂正は修正前に記録する。
+2. 作業ID、要求の出典、リスク、範囲だけでレビュアーの初期資料を作る。
+3. 実装案より先に要求から受入基準を導き、各項目へ固定IDと出典を付ける。
+4. `acceptance_version`、許可・禁止範囲、検証、停止条件、再試行上限を引き継ぎへ固定する。
+5. `routing.md` の役割構成を選び、実装前に予約する。
+6. 書き手は一人。調査・レビュー担当は読み取り専用にする。
+7. 最小のまとまった変更を実装し、対象別の検証を行う。
+8. 共通の検証条件を実行する。
+9. 独立レビューが必要なら `review.md` の二段階で実施する。
+10. 受け入れた指摘は同じ書き手が修正し、影響する検証を再実行する。
+11. 長く残す知識や役割方針の更新要否を確認する。
+12. 自由文や非公開内容を含めず、作業の終了イベントを記録する。
 
-## Loops
+## 繰り返しと停止
 
-- Default: turn-based
-- Goal-based: only with machine-checkable acceptance and an explicit attempt cap
-- Time-based: only for monitoring with explicit authorization and a stop rule
-- Proactive: not enabled by this template
-
-Do not silently change frozen acceptance after implementation begins. Create a
-new version, preserve the old one, and record a `scope_decision` intervention.
+既定は会話のターン単位。目標達成までの反復は、機械判定できる基準と明示した試行上限がある場合だけ許可する。時間単位の反復は、明示許可と停止条件のある監視だけに使う。自発的な無人ループは有効にしない。
+実装開始後に受入基準を黙って変えない。新しい版を作り、`scope_decision` の介入として記録する。

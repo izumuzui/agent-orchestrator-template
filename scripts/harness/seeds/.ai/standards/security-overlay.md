@@ -1,10 +1,9 @@
-# Repository security overlay
+# プロジェクト固有の安全基準
 
-Project-owned. Fill before the first tracked task; until then treat data,
-infrastructure, and external-state changes as high-risk.
+プロジェクト所有。最初の追跡作業前に記入する。未記入の間はデータ・基盤・外部状態の変更を高リスクとする。
 
-## Private data
+## 非公開データ
 
-## Forbidden without explicit owner scope
+## 明示許可なしに行わないこと
 
-## External state and rollback
+## 外部状態と切り戻し

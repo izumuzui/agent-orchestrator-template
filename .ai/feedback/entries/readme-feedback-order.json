@@ -1,0 +1,12 @@
+{
+  "id": "readme-feedback-order",
+  "kind": "review",
+  "scope": "README.md",
+  "observation": "改善の図が明確な欠陥の修正前記録を飛ばせる順序になっていた",
+  "expected": "確認済みの欠陥は記録、修正、検証の順に示す",
+  "source": "https://github.com/izumuzui/agent-orchestrator-template/blob/9a1ab66/.ai/workflows/feedback-loop.md",
+  "status": "proposed",
+  "evidence": "",
+  "prevention": "",
+  "history": []
+}

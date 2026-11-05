@@ -1,117 +1,52 @@
-# Quality routing and scheduling
+# 品質に基づく役割分担と利用枠調整
 
-Role structure is model-neutral. Agent assignment is an exchangeable policy.
+役割構成はモデルに依存せず、誰を割り当てるかは版を付けた方針として管理する。
 
-## Role patterns
-
-| Pattern | Structure | Use when |
+| 構成 | 担当 | 適する作業 |
 |---|---|---|
-| P0 | one instance plans, writes, and self-verifies | clear, low-risk, small change |
-| P1 | one writer + fresh reviewer | independent review is required |
-| P2 | planner + one writer + fresh reviewer | novel, cross-cutting, or non-trivial work |
-| P3 | primary + at most two read-only explorers, then P0-P2 | two or more independent read-heavy investigations |
+| P0 | 一つの担当が計画・編集・自己検証 | 明確で小さく低リスク |
+| P1 | 一人の書き手と新しい文脈のレビュアー | 独立レビューが必要 |
+| P2 | 計画担当、一人の書き手、レビュアー | 新規性・横断性・複雑さがある |
+| P3 | 主担当と最大二人の読み取り調査担当、その後P0〜P2 | 独立した調査が二つ以上 |
 
-P0 self-verification is not independent review. A sentinel task is upgraded to
-P1-equivalent review. P3 never creates multiple shared-worktree writers.
+P0の自己検証は独立レビューではない。抜き取り対象はP1相当に引き上げる。P3でも共有作業ツリーの書き手は増やさない。
 
-## Quality routing
+## 品質による選択
 
-| Risk and task shape | Pattern |
+高リスクで仕様が明確ならP1、新規・横断的ならP2。低リスクで定型なら、校正・抜き取り・特別な引き上げがない限りP0。低リスクでも新規・横断的ならP1、計画分離に価値があればP2。独立した調査が複数あるときは編集前にP3を使う。
+適任候補を品質条件で選んだ後に、利用枠・制限・可用性・待ち時間を考慮する。意図した構成、版付き能力IDによる実担当、代替理由、レビュー関係を記録する。適任がいなければ待つ、範囲を絞る、所有者へ戻す。余った枠を使うために品質や安全を落とさない。
+
+## 校正と抜き取り
+
+- 最初の非定型作業10件は独立レビュー必須。
+- 校正後も高リスクは毎回レビューする。
+- 校正後の低リスクは `area_id:task_type` ごとの5件に1件を抜き取りレビューする。
+- 見逃した欠陥があれば同じ分類の次の5件もレビューする。
+- 終了イベント10件ごと、およびモデルや契約の変更時に見直す。
+
+`reserve-routing.py` は実装前に順番を排他的に予約する。校正後の低リスクだけに `sentinel_sequence` を使い、中・高リスクが抜き取り枠を消費しない。
+初期スクリプトは校正と定期抜き取りを自動判定する。見逃し後の5件は、永続的な欠陥カウンターを追加するまでは `escaped_defect` の明示指定で運用する。
+
+## 担当の適格性
+
+薄い入口から共通知識を読めること、権限をリスク分類へ対応させられること、共通検証の実際の証拠を返せること、安全に引き継ぎを扱えること、使用量を実測または未取得と記録できることを確認する。計画・編集・レビュー・読み取り調査を個別に判定する。独立レビューができなくても、他の役割まで一律に除外しない。
+
+## 現在の既定: v3
+
+| 役割 | 担当 |
 |---|---|
-| high-risk, specification clear | P1 |
-| high-risk, novel or cross-cutting | P2 |
-| low-risk, clear and routine | P0 unless calibration, sentinel, or escalation applies |
-| low-risk, novel or cross-cutting | P1; use P2 when plan separation adds value |
-| at least two independent read-heavy investigations | P3 before the write pattern |
+| 計画、受入基準案、役割分担 | Claude Code |
+| 実装 | Claude Code |
+| Claudeの成果のレビュー | 新しい文脈のCodex |
+| テスト・修正 | Codex |
+| Codexのテスト・修正のレビュー | 新しい文脈のClaude Code |
 
-## Scheduling
+新規追跡作業は `--policy-version v3` を使う。同時の書き手は一人で、Claudeの停止と再開地点の記録を済ませてからCodexへ引き継ぐ。
+レビューは原則 `cross_provider`。相手が利用できない場合だけ、新しい文脈の同一提供元を代替として記録する。節約のために省略しない。利用枠の推薦はこの役割方針を上書きせず、待機や範囲縮小で対応する。
 
-After quality routing identifies qualified candidates, scheduling may consider
-quota, rate limits, availability, and latency. Record:
+## 過去の方針: v1 / v2
 
-- intended pattern
-- actual assignment using versioned capability profile IDs
-- fallback reason
-- reviewer relation: none, fresh same-provider, or cross-provider
-
-If no qualified candidate is available, wait, narrow scope, or return to the
-owner. Never lower quality or safety to consume spare quota.
-
-## Legacy initial assignment policy: v1
-
-| Role | Assignment |
-|---|---|
-| Planner / acceptance draft | Codex capability profile |
-| Writer / test / fix | Claude Code capability profile |
-| Reviewer | fresh Codex capability profile; fresh same-provider fallback allowed |
-
-This is Pattern C, an economic hypothesis for the current contracts. It is not
-a permanent capability ranking.
-
-## Calibration and sentinel policy
-
-- First 10 non-trivial tasks: independent review required
-- After calibration: high-risk always reviewed
-- After calibration: every fifth low-risk task for each `area_id:task_type` key
-  becomes a sentinel and requires independent review
-- Escaped defect: the same counter key requires review for the next five tasks
-- Re-evaluate every 10 terminal task events and on model or contract changes
-
-`scripts/agent/reserve-routing.py` atomically reserves the per-key routing
-sequence before implementation so review cannot be discovered too late. It
-keeps a separate `sentinel_sequence` for post-calibration low-risk tasks, so
-medium and high-risk work cannot accidentally consume a sentinel slot.
-
-The v1 script automates calibration and periodic sentinels. Escaped-defect
-escalation uses the explicit `escaped_defect` review override for the next five
-matching tasks until a repository adds a durable defect-window counter.
-
-## Adding another Agent
-
-Check base conformance, then role-specific capability:
-
-- can read the shared core through a thin adapter
-- maps its permissions to repository risk classes
-- can run common verification and return raw evidence
-- can read and write the handoff contract without leaking private content
-- records usage as observed or missing, never invented
-- qualifies separately as planner, writer, reviewer, or read-only explorer
-
-An Agent that cannot provide fresh review is excluded only from the reviewer
-role, not automatically from every role.
-
-## Subscription assignment policy: v2
-
-For the Plus / Pro setup, planner, writer, and reviewer assignments are
-exchangeable after role qualification. Start with Codex writing and Claude
-reviewing, or reverse them when observed remaining capacity supports it.
-Fresh-context review remains required wherever the reservation says so.
-Use `--policy-version v2` for newly tracked tasks; keep existing v1 records.
-Use `subscription-scheduling.md` and `scripts/agent/quota.py` after reserving
-quality routing. Recommendations are advisory; they do not launch workers or
-change the reservation's review requirements. Freeze the actual assignment and
-fallback reason in the handoff. Never switch a running writer without a stopped
-writer and a resume checkpoint.
-
-## Default assignment policy: v3
-
-Default for newly tracked tasks. Claude plans and implements; Codex tests and
-fixes. Each provider's output is reviewed by the other.
-
-| Role | Assignment |
-|---|---|
-| Planner / acceptance draft / role split | Claude Code capability profile |
-| Writer (implementation) | Claude Code capability profile |
-| Review of Claude's output | fresh Codex capability profile |
-| Test / fix | Codex capability profile |
-| Review of Codex's output (tests and fixes) | fresh Claude Code capability profile |
-
-- Still one writer at a time. Implementation to test/fix is a writer handoff:
-  stop the Claude writer, write a checkpoint, then start the Codex writer.
-- Review is always cross-provider (`--reviewer-relation cross_provider`).
-  Fresh same-provider review is a recorded fallback only when the other
-  provider is unavailable; never skip review to save quota.
-- Quality roles above override quota recommendations. Quota may delay a step
-  or narrow scope but must not swap providers inside a role.
-- Use `--policy-version v3`; keep existing v1/v2 records.
-
+既存記録は書き換えずに保持する。
+v1はCodexが計画、Claude Codeが編集・検証・修正、新しいCodexがレビューする初期P2割り当て。経済性の仮説であり能力の恒久順位ではない。
+v2は適格性確認後にCodexとClaudeの計画・編集・レビューを交換できる方針。Codex編集・Claudeレビューから始め、実測残量に応じて逆にする。品質の予約後に `subscription-scheduling.md` と `scripts/agent/quota.py` を使う。
+推薦は助言で、自動起動もレビュー要件の変更もしない。実担当と代替理由を引き継ぎに固定し、稼働中の書き手を停止と再開地点なしで交代させない。

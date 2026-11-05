@@ -1,10 +1,10 @@
-# Claude Code adapter
+# Claude Code向け入口
 
 <!-- HARNESS:START -->
 <!-- HARNESS:END -->
 
-## Project rules
+## プロジェクト固有のルール
 
-Repository-wide rules shared with Codex live in AGENTS.md:
+Codexと共有する全体ルールはAGENTS.mdを参照する。
 
 @AGENTS.md

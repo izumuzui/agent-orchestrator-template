@@ -1,6 +1,8 @@
-# Project verification
+# このリポジトリ固有の検証
 
-| Mode | Checks | Required for |
+| モード | 検査 | 必要な場面 |
 |---|---|---|
-| `full` | sync/guard unit tests, shell syntax, seeds pass the harness gate in a scratch repo | completion |
-| `ci` | same as `full` | GitHub Actions |
+| `full` | 同期・ガードの単体テスト、シェル構文、一時リポジトリへ導入したひな形の共通検証 | 完了前 |
+| `ci` | `full` と同じ | GitHub Actions |
+
+実際の検査は `scripts/project/verify.sh` に定義する。

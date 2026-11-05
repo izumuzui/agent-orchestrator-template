@@ -1,19 +1,18 @@
-## Problem and result
+## 問題と変更後の挙動
 
-Describe the observable change and acceptance criteria.
+観測できる問題、変更の結果、受入基準を記入する。
 
-## Verification
+## 検証
 
-- Common gate: `bash scripts/agent/verify-change.sh full`
-- Focused checks and actual results:
-- Skipped / environment-blocked:
+- 共通検証: `bash scripts/agent/verify-change.sh full`
+- 対象別の確認と実際の結果:
+- 失敗・省略・環境による実行不能:
 
-## Feedback and UI evidence
+## 指摘への対応と画面の証拠
 
-- Feedback IDs addressed (or none, with reason):
-- UI changed? If yes, screen/viewport, before/after evidence, and interaction checks:
-- Prevention: regression test/check or scoped lesson; explain when no lesson is needed:
-- Required independent review status:
+- 対応した教訓ID、または該当なしの理由:
+- 画面変更の有無。変更時は対象画面・表示幅・変更前後の証拠・操作確認:
+- 回帰テストや教訓による再発防止。不要なら理由:
+- 必須の独立レビューの結果:
 
-Do not include secrets, private screenshots, or raw conversation logs. Native
-Codex review is configured separately; a green CI check is not AI approval.
+秘密、非公開画像、会話全文を含めない。Codexのサービス側レビューは別設定で、CI成功はAIの受入判断ではない。

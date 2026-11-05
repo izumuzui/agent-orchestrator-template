@@ -1,37 +1,24 @@
-# Independent review workflow
+# 独立レビューの手順
 
-The reviewer is a different Agent instance with fresh context. Same-provider
-review qualifies; cross-provider review is preferred when available but remains
-an observed hypothesis, not an invariant.
+新しい文脈を持つ別インスタンスが担当する。同じ提供元の別担当も独立レビューとして扱えるが、別提供元との相互レビューを優先する。能力差は観測する仮説であり固定条件にしない。現在の担当方針は `routing.md` に従う。
 
-## Stage 1: source-first derivation
+## 第1段階: 出典から基準を導く
 
-Give the reviewer only:
+作業ID、要求の出典、許可・禁止範囲、リスク分類と固有設定だけを渡す。
+レビュアーは、書き手の基準・計画・差分・結論を見る前に、受入基準と重要な境界を独立に導く。
 
-- task ID
-- requirement sources
-- allowed and forbidden scope
-- risk class and repository overlay
+## 第2段階: 証拠を照合する
 
-The reviewer independently derives acceptance and important boundaries before
-seeing the writer's acceptance, plan, diff, or conclusions.
+固定した引き継ぎ、差分、実際の検証結果を開示し、次の順で確認する。
 
-## Stage 2: evidence review
+1. 要求と範囲への適合
+2. 正しさ、境界条件、失敗時の処理
+3. 安全・プライバシー・権限・破壊的操作
+4. 互換性、復旧、再実行、運用上の切り戻し
+5. 省略・実行不能を含めたテストと証拠の質
+6. 不要な複雑さ・依存・生成物・無関係な編集
+7. 知識と方針の更新要否
 
-Then reveal the frozen handoff, diff, and raw verification evidence. Review in
-this order:
-
-1. Requirement and scope compliance
-2. Correctness, boundaries, and failure handling
-3. Safety, privacy, authorization, and destructive behavior
-4. Compatibility, recovery, idempotency, and operational rollback
-5. Test and evidence quality, including skipped or blocked proof
-6. Unnecessary complexity, dependencies, generated files, or unrelated edits
-7. Knowledge and policy update requirements
-
-Report actionable findings first, ordered by severity, with file and line. Do
-not optimize for finding count. Use `accepted`, `changes_required`, or `blocked`
-as the review outcome and record rework rounds separately.
-
-The reviewer does not edit the shared worktree. The designated writer applies
-accepted findings.
+対処可能な指摘から重大度順にファイル・行番号を付けて報告する。件数を目標にしない。
+結果は `accepted`（受入）、`changes_required`（修正必要）、`blocked`（実行不能）で示し、手戻り回数を別に記録する。
+レビュアーは共有作業ツリーを編集しない。受け入れた修正は指定された書き手が行う。

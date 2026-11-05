@@ -1,49 +1,27 @@
-# Requirements and design milestone review (opt-in)
+# 要件定義・詳細設計の節目レビュー
 
-Invoke at requirement agreement, detailed-design completion, implementation
-completion, or when implementation/review exposes upstream ambiguity. The
-review is read-only and supplements required code review and verification.
-Declare sources, revisions, allowed scope, evidence access and a one-pass budget
-before starting; do not ask for an entire private conversation by default.
+要件合意、詳細設計完了、実装完了、または実装・レビューで上流の曖昧さが分かったときに使う任意の読み取りレビュー。必須のコードレビューと検証を補完する。
+出典、版、許可範囲、証拠へのアクセス、一巡の上限を事前に決め、非公開会話の全文を既定で求めない。
 
-| Axis | Evidence question |
+| 観点 | 証拠から確認する問い |
 |---|---|
-| Questions | Were consequential open choices raised at the right time, without excessive questioning? |
-| Intent | Does the agreed artifact reflect the user's goal and constraints? |
-| Assumptions | Are inferred behaviors marked as assumptions rather than agreements? |
-| Clarity | Can a reader explain the decision and resulting behavior? |
-| Agreement | Are decided, open and deferred items distinguished, with owner/next action? |
-| Consistency | Does the revision preserve earlier agreements and constraints? |
-| Traceability | Can requirements be followed through design decisions, implementation and proof? |
+| 質問 | 影響の大きい未決事項を適時に確認し、質問過多を避けたか |
+| 意図 | 合意した成果物が目的と制約を反映するか |
+| 仮定 | 推測した挙動を合意と混同していないか |
+| 明瞭性 | 読者が判断と結果の挙動を説明できるか |
+| 合意 | 決定・未決・保留と担当・次の対応が分かれるか |
+| 一貫性 | 過去の合意と制約を守るか |
+| 追跡可能性 | 要求から設計・実装・検証まで辿れるか |
 
-Question priority depends on impact and rework cost if an assumption is wrong.
-Clarify consequential unresolved choices before dependent work. For reversible,
-low-impact details, state a reasonable assumption and proceed. Do not mandate a
-question count or ask about every detail. Do not treat silence as agreement.
+質問の要否は影響と誤った仮定による手戻りで決める。重要な未決事項は依存作業前に確認し、小さく可逆な詳細は仮定を示して進める。質問数を義務化せず、沈黙を合意としない。
 
-Freeze an agreement snapshot with: requirement ID and safe source reference,
-revision, goal/constraints, explicit decisions, assumptions, open/deferred
-questions with owner/next step, linked design IDs and intended proof. Absence
-of a link is a gap to inspect, not proof of a process failure. Record changes
-with a new acceptance version rather than rewriting the earlier agreement.
+## 合意の保存
 
-Review output per candidate: phase, axis, observed fact and evidence handle,
-expected behavior, impact, separate hypothesis/confidence, unknowns and next
-validation. Include covered axes with no observable issue; never manufacture
-findings. An AI self-review is a candidate assessment, not confirmed cause or
-independent acceptance. Apply the normal fresh-review requirement where due.
+要求IDと安全な出典参照、版、目的・制約、決定、仮定、未決・保留事項の担当と次の対応、設計ID、予定する検証を固定する。対応リンクの欠落は調査すべき不足であり、直ちにプロセス失敗の証明とはしない。変更時は過去の合意を上書きせず受入基準の版を上げる。
 
-If implementation exposes ambiguity, trace the affected requirement and design
-revision and record where the decision was made or remained open. Correct the
-current artifact through the normal change workflow. Store process candidates
-separately for later evaluation; this review itself changes no artifacts or
-permanent rules. Use the existing curated feedback workflow only after a
-substantive defect is established. Keep private source content out of reports.
+## 結果の扱い
 
-Pilot on 5–10 milestones. Compare rework, consequential unresolved choices,
-question burden, review time and evidence usefulness. Stop or simplify the
-review if it adds cost without useful detection. Rollback removes the optional
-milestone invocation, not existing acceptance history or mandatory proof.
-
-This template-local extension is opt-in and not in the distribution manifest.
-Add a project-specific routing entry when adopting it; no schedule is installed.
+候補ごとに段階、観点、観測事実と証拠参照、期待、影響、独立した仮説と信頼度、不明点、次の確認を残す。確認したが問題がなかった観点も示し、無理に指摘を作らない。AI自己評価は候補であり、確定原因や独立した受入判断ではない。必要な独立レビューは通常どおり行う。
+実装で曖昧さが分かったら要求・設計の該当版へ遡り、どこで決まったか、未決だったかを記録する。成果物は通常の変更手順で直し、プロセス候補は後日の評価へ分離する。このレビュー自体では成果物や恒久ルールを変更しない。実質的な欠陥を確認してから既存の教訓手順へ進む。非公開の生データは報告へ入れない。
+5〜10回の節目で試し、手戻り、重要な未決事項、質問負担、時間、証拠の有用性を比較する。効果がなければ止めるか簡略化する。切り戻しは任意の呼び出しを外し、受入履歴や必須検証は残す。
+このガイドは管理対象外の正本内の任意拡張。他プロジェクトでは固有の手順に追加して採用する。定期実行は設定しない。

@@ -1,36 +1,23 @@
-# Opt-in observation capture
+# 原因未判定の観測を記録する
 
-Use this when a process concern is not yet a verified defect or lesson. Fix the
-current artifact first; record only a short sanitized observation and expected
-behavior. Cause analysis is optional and deferred. This is separate from the
-existing curated feedback CLI and its active/proposed context selection.
+プロセス上の懸念が、まだ欠陥や教訓と確認できない場合に任意で使う。成果物の修正を優先し、非公開情報を除いた観測と期待だけを短く記録する。原因分析は後回しにできる。既存の教訓コマンドと文脈選択からは独立している。
 
-Create a local JSON input under ignored `.agent-state/`, then run:
+Git除外の `.agent-state/` に入力JSONを作り実行する。
 
 ```bash
 python3 scripts/agent/observe.py --input .agent-state/observation-input.json
 ```
 
-Required fields: phase (requirements/design/implementation/review/operation),
-issue_type (lowercase identifier), observation, expected. Optional string lists:
-references, hypotheses, unknowns. References are opaque handles such as
-`evidence:case-1`; they must resolve through an approved local evidence index.
-Do not supply absolute paths, raw conversation, source excerpts or credentials.
-The helper validates shape, not confidentiality: sanitize before invoking it.
+| 項目 | 内容 |
+|---|---|
+| `phase` | 必須。`requirements` / `design` / `implementation` / `review` / `operation` |
+| `issue_type` | 必須。小文字の識別子 |
+| `observation` / `expected` | 必須。観測と期待 |
+| `references` | 任意。安全な証拠参照IDの文字列一覧 |
+| `hypotheses` / `unknowns` | 任意。仮説と不明点の文字列一覧 |
 
-The helper assigns a UUID and UTC time, serializes append operations with a
-local POSIX lock and flushes the journal. It returns only ID and status. Local
-records live under `.agent-state/observations/feedback.jsonl` and never enter
-normal feedback context. Both CLI clients may invoke this helper; network
-filesystems, multi-machine concurrent writes and hostile local writers are
-unsupported. This helper is not a permission boundary. A disk failure can leave
-a partial final line: capture then fails closed until an owner repairs the
-journal from a preserved local backup. Do not silently discard damaged records.
-
-An observation is pending with unconfirmed cause, even if hypotheses are
-supplied. Later analysis may propose a sanitized scoped lesson through the
-existing feedback workflow; promotion still needs evidence, prevention and
-required review. No automatic ingestion, promotion or harness rewrite occurs.
-Pilot with 5–10 cases before expanding automation. Roll back by stopping helper
-invocation; existing feedback operations are unchanged. Retain/delete local
-records according to the project's retention policy; never commit the journal.
+参照は `evidence:case-1` のような識別子とし、承認済みのローカル索引から解決する。絶対パス、会話全文、ソース抜粋、認証情報を入力しない。コマンドは形式を検証するだけで機密性を判定しないため、呼び出す前に内容を確認する。
+UUIDとUTC時刻を付け、ローカルPOSIXロックで追記を直列化して保存する。返却はIDと状態だけ。記録は `.agent-state/observations/feedback.jsonl` に置き、通常の教訓文脈へ入れない。両CLIから呼べるが、ネットワークファイルシステム、複数端末同時書き込み、悪意あるローカル書き手には対応しない。権限の境界ではない。
+ディスク障害で最終行が途中になる可能性がある。その後の記録は停止するため、保存したバックアップを基に所有者が修復する。壊れた記録を黙って捨てない。
+仮説があっても原因は未確認、レビューは保留のまま。後日、既存の改善手順で対象別の教訓を提案できるが、昇格には証拠・再発防止・必要なレビューが要る。自動取込・昇格・設定変更はしない。
+5〜10件で有用性を評価してから拡張する。切り戻しは呼び出しを止めるだけで既存の教訓操作は変わらない。ローカル記録は保持方針で保管・削除し、Gitへ入れない。

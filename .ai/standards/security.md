@@ -1,34 +1,19 @@
-# Safety and privacy
+# 安全とプライバシー
 
-## Invariants
+## 必ず守ること
 
-- Never send secrets through model input, tool-output context, handoffs, or logs.
-- Private source or data may be used only with an approved provider and
-  retention configuration.
-- Data prohibited from cloud transfer must be handled by approved local-only
-  tools and agents.
-- Do not persist raw private content, exact private paths, terminal dumps, or
-  credentials in handoffs, task events, reports, or Git.
-- Destructive and external-state changes require explicit owner authorization.
-- A qualified agent being unavailable is not permission to lower the quality,
-  privacy, sandbox, approval, or reasoning profile.
+- 秘密情報をモデル入力、ツール出力の文脈、引き継ぎ、ログへ送らない。
+- 非公開のソースやデータは承認済みの提供元と保持設定でのみ扱う。
+- クラウド転送禁止データは承認済みのローカル専用ツールと担当だけで扱う。
+- 生の非公開内容、具体的な非公開パス、端末出力の全文、認証情報を引き継ぎ・イベント・報告・Gitに保存しない。
+- 破壊的操作と外部状態の変更には所有者の明示許可を得る。
+- 適任の担当がいなくても、品質・プライバシー・隔離・承認・推論の条件を弱めない。
 
-## Common high-risk classes
+## 共通の高リスク分類
 
-- destructive operation or bulk mutation
-- private or regulated data boundary
-- secret, credential, authentication, or authorization handling
-- billing or financial behavior
-- data schema, migration, transaction, or recovery behavior
-- infrastructure, deployment, service control, or external state
-- public API, file-format, or UI compatibility
+破壊的操作や一括変更、非公開・規制対象データの境界、秘密・認証・権限、課金・金銭、スキーマ・移行・トランザクション・復旧、基盤・配布・サービス制御・外部状態、公開API・ファイル形式・画面の互換性を高リスクとする。
+最低P1と新しい文脈のレビュアーを必要とする。レビュー後も破壊的操作には明示的な人の承認が必要。
 
-High-risk changes require at least P1 and a fresh reviewer. Destructive actions
-still require explicit human approval even after review.
+## プロジェクト固有の設定
 
-## Repository overlay
-
-Repository-specific risks live in `.ai/standards/security-overlay.md`
-(project-owned). Read it before classifying risk. An empty overlay means the
-repository has not been classified yet: treat its data, infrastructure, and
-external-state changes as high-risk until it is filled.
+`.ai/standards/security-overlay.md` を分類前に読む。未記入なら分類が未完了なので、データ・基盤・外部状態の変更は記入まで高リスクとして扱う。
