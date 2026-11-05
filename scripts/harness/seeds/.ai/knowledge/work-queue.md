@@ -1,10 +1,8 @@
-# Shared work queue
+# 共有の作業一覧
 
-Keep task descriptions sanitized and repository-relative. Local quota state is
-not a task status or writer lock. Only mark done after required verification
-and review. One coordinator assigns work; stop the old writer before takeover.
+説明は安全な要約と相対パスにする。利用枠の状態は作業状態や書き手のロックではない。必須検証とレビュー後だけ完了にする。調整役は一つとし、交代前に旧書き手を止める。
 
-| Task ID | Priority | Scope / acceptance | Status | Owner / branch | Next action |
+| 作業ID | 優先度 | 範囲・受入基準 | 状態 | 担当・ブランチ | 次の作業 |
 |---|---|---|---|---|---|
 
-Statuses: queued, active, handoff, review, blocked, done.
+状態: `queued`（待機）、`active`（作業中）、`handoff`（引き継ぎ）、`review`（レビュー）、`blocked`（実行不能）、`done`（完了）。

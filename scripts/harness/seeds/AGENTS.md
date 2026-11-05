@@ -1,8 +1,8 @@
-# Repository agent adapter
+# エージェント向け入口
 
 <!-- HARNESS:START -->
 <!-- HARNESS:END -->
 
-## Project rules
+## プロジェクト固有のルール
 
-Add stable repository-wide rules here. Product facts belong in `.ai/project.md`.
+安定した全体ルールだけを記入する。製品の事実は `.ai/project.md` に置く。

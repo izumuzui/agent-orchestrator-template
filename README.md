@@ -1,196 +1,154 @@
-# Codex Plus / Claude Pro shared orchestrator
+# AI開発ハーネス
 
-Claude Code、Codex、将来追加するAgentを、モデルの序列ではなく共通の
-検証・handoff・routing規約で扱うためのSmall Coreです。
+Claude CodeとCodexで、**要求の確認から実装・検証・レビュー・再発防止までを同じ手順で進める**ための運用テンプレートです。AIの回答だけを信用せず、「何を満たすか」「何を確かめたか」を残します。モデルを再学習する仕組みではありません。効果は実際の作業で測り、手順を見直します。
 
-このディレクトリは実証済みフレームワークではありません。初期policyを
-10件のnon-trivial taskで校正し、結果からassignmentを更新するための
-運用テンプレートです。
+## 何に効くのか
 
-## Core principles
+| 開発で起きること | ハーネスの働き | 確認できるもの |
+|---|---|---|
+| 意図と違うものを実装する | 要求から受入基準を先に固定する | 要求と基準の対応、未決事項 |
+| 「直した」で作業が終わる | 共通チェックとプロジェクト固有の検証を実行する | 成功・失敗・未検証の区別 |
+| 同じAIが見落とし続ける | 必要な作業は新しい文脈の別担当がレビューする | 要求から独立に導いた基準と差分の照合 |
+| 同じ指摘が繰り返される | 対象別に記録し、証拠と再発防止を確認して教訓にする | 有効な教訓と未判定の観測の分離 |
+| 指示が増えて読まれなくなる | 必要な文書だけ読み、効果のないルールを統合・廃止する | 比較評価と見直しの判断 |
+| 複数AI・端末の作業が衝突する | 書き手を一人にし、停止と引き継ぎを明示する | 担当、コミット、次の作業 |
 
-- 要求ソースから、実装案より先にacceptanceとproofを定義する
-- shared worktreeへの書込みはone writerに限定する
-- 独立reviewはfresh contextの別instanceで行う
-- quality routingとquota-aware schedulingを分離する
-- qualified agentが不在なら待つかscopeを縮小し、品質を降格しない
-- loopには停止条件、試行上限、再診断条件を持たせる
-- handoffとtask eventにsecretやraw private contentを残さない
+## 作業中はどう効くのか
 
-## Structure
-
-```text
-AGENTS.md / CLAUDE.md       Managed harness block + project rules
-.ai/knowledge/              Stable facts and decision journal
-.ai/standards/              Invariants and repository risk overlay
-.ai/verification/           Definition of verified completion
-.ai/workflows/              Change, review, routing, orchestration
-.ai/handoffs/               Versioned handoff template only
-.ai/metrics/                Event schema; actual events stay outside Git
-.agent-state/               Ignored task snapshots and event journal
-scripts/agent/              Deterministic checks and state helpers (managed)
-scripts/harness/            Sync, guard hook, manifest, seeds (template only)
-scripts/project/            Project-owned product verification
+```mermaid
+flowchart TD
+    U[要求・共通指示・対象の仕様を読む] --> A[受入基準・範囲・検証・役割を固定]
+    A --> B[必要なら別担当が出典から独立に基準を導く]
+    B --> W[一人の書き手が実装]
+    W --> V[共通チェックと固有の検証]
+    V -->|失敗| W
+    V -->|成功・レビューが必要| I[新しい文脈の別担当が差分と証拠を確認]
+    I -->|修正が必要| W
+    I -->|受入| D[結果と引き継ぎを記録]
+    V -->|成功・レビュー不要| D
+    D --> H[人がPRを確認して採用を判断]
 ```
 
-## ~/work 全体への導入と同期
+これはエージェントが従う作業手順です。全体を自動実行するサービスではありません。修正・検証は原則3回まで。同じ失敗が2回続けば原因や設計を見直します。必要な検証やレビューができなければ、完了扱いにしません。
 
-このリポジトリは `~/work` 以下の全プロジェクトのハーネスの正本です。
-各リポジトリには管理ファイルをコピーし、`.ai/harness.lock.json` にハッシュを記録します。
+## 指摘はどう次の作業に活きるのか
+
+```mermaid
+flowchart TD
+    F[ユーザーの指摘・作業中の気づき] --> T{問題は確認できているか}
+    T -->|明確な修正要求・欠陥| P[対象と出典を付けて教訓候補を記録]
+    P --> C[現在の成果物を修正]
+    C --> V[修正の証拠と再発防止を検証]
+    V --> L[有効な教訓として対象別に参照]
+    L --> N[次の関連作業]
+    T -->|原因未判定| X[必要な成果物修正を優先]
+    X --> O[任意で短い観測をローカル記録]
+    O --> B[後日のまとめ分析]
+    B --> J[必要な改善だけを提案・評価]
+    J --> P
+```
+
+`feedback.py` は確認された指摘と再利用する教訓を扱います。`observe.py` は原因未判定の観測を扱い、普段の文脈へ自動で読み込ませません。観測を記録しただけでは教訓に昇格しません。詳細調査の子エージェントや節目レビューも任意導入です。
+
+## 文書と仕組みの配置
+
+| 場所 | 役割 |
+|---|---|
+| `AGENTS.md` / `CLAUDE.md` | エージェントの入口、常時適用する安全ルール |
+| `.ai/README.md` / `.ai/project.md` | 共通手順の案内とプロジェクト固有の前提 |
+| `.ai/workflows/` | 変更、レビュー、役割分担、改善の手順 |
+| `.ai/standards/` / `.ai/verification/` | 安全基準と検証の完了条件 |
+| `.ai/knowledge/` | 構成案内、意思決定、作業一覧 |
+| `.ai/feedback/` | 対象別の教訓と観測記録の使い方 |
+| `.agent-state/` | Gitに入れない作業・観測・利用枠の記録 |
+| `scripts/agent/` | 検証、役割予約、引き継ぎ、記録のコマンド |
+| `scripts/project/` | 各プロジェクトが用意する検証 |
+| `scripts/harness/` | この正本から他リポジトリへ配布する仕組み |
+
+仕様と判断理由は文書、繰り返す手順はワークフローやスキル、機械判定できる条件はテストやCI、危険な操作は権限やフックに置きます。禁止事項を文章に書くだけで操作を強制的に防げるわけではありません。
+
+## このリポジトリを試す
+
+必要環境はmacOSまたはLinux、Bash 3.2以上、Python 3.9以上、Gitです。GitHub操作には認証済みのGitHub CLIなどが別途必要です。
 
 ```bash
-python3 scripts/harness/sync.py status                       # 全リポジトリの状態
-python3 scripts/harness/sync.py install ~/work/<repo> --dry-run
-python3 scripts/harness/sync.py install ~/work/<repo>        # 導入
-python3 scripts/harness/sync.py sync ~/work/<repo>           # テンプレート更新の反映
-python3 scripts/harness/sync.py health                       # 運用状況（読み取りのみ）
-```
+# 文書・構成・安全ルールの整合性を確認
+scripts/agent/verify-change.sh agent-env
 
-`health` は各リポジトリについて、同期状態、`task-events.jsonl` の予約・完了・未完了
-（`--stale-days` 日以上前のものに印）、校正の進捗（完了/10）、次の見直し時点、
-クロスプロバイダレビューの件数、既定ブランチへの未マージ導入、worktree の種別と
-`prunable` の数を表示します。警告があると終了コード 1、`--json` で機械可読です。
-
-- 管理ファイル（`scripts/harness/manifest.json` の `managed`）は上書き同期。
-  プロジェクトで直接編集されていると同期を拒否し、差分を表示します。
-- 初期ファイル（`seeded`）は無い時だけ作り、以後はプロジェクト所有です。
-- `AGENTS.md` / `CLAUDE.md` は `<!-- HARNESS:START -->` 〜 `<!-- HARNESS:END -->`
-  だけを置き換え、プロジェクト固有のルールは残します。
-- commit・push は行いません。導入後に各プロジェクトのスロットを埋めて検証・レビューします。
-
-強制はグローバルフック `scripts/harness/guard.py` で行います（Claude Code と Codex 共通）。
-
-- SessionStart: リポジトリのハーネス状態と読む順番を文脈に注入
-- PreToolUse（Edit / Write / apply_patch など）: 未導入リポジトリの編集と、
-  管理ファイルの直接編集を拒否。導入済みリポジトリの古いブランチは警告のみ
-- 対象は `scripts/harness/workspace.json` の `root`、除外は `exempt`（既定: `notes`）
-- 一時的に外す: `AGENT_HARNESS_GUARD=off`。内部エラー時は fail open
-
-## Start using it
-
-1. `.ai/knowledge/repository-map.md` を対象repositoryに合わせて更新する。
-2. `.ai/standards/security.md` のrepository overlayを埋める。
-3. `.ai/workflows/routing.md` のassignment policyを契約と利用可能Agentに合わせる。
-4. `scripts/project/verify.sh` に実際のlint/test/buildを書く（`.ai/verification/project.md`）。
-5. `scripts/agent/check-agent-env.sh` を実行する。
-6. taskごとにhandoffを作り、routingを予約する。
-
-```bash
-scripts/agent/create-handoff.sh
-
-scripts/agent/reserve-routing.py \
-  --task-id t_20260715_example \
-  --policy-version v1 \
-  --area-id backend \
-  --task-type feature \
-  --risk medium \
-  --intended-pattern P2 \
-  --non-trivial
-```
-
-完了時は、予約時に返された`review_required`に従ってreviewを通したうえで
-eventを記録します。
-
-```bash
-scripts/agent/record-completion.py \
-  --task-id t_20260715_example \
-  --planner codex_plan_v1 \
-  --writer claude_writer_v1 \
-  --reviewer codex_review_v1 \
-  --reviewer-relation cross_provider \
-  --review-outcome accepted \
-  --overall passed \
-  --passed 12
-```
-
-## Legacy initial assignment policy
-
-旧v1のPattern Cは、P2への交換可能なassignmentです。Plus / Proでは後述のv2を使います。
-
-```text
-Codex: Plan / acceptance draft
-Claude Code: Implementation / test / fix
-Fresh Codex instance: Independent review
-Claude Code: Review findingsの修正
-```
-
-これは能力の固定評価ではありません。10件ごとの意思決定checkpoint、
-またはモデル・契約変更時に`.ai/knowledge/decisions.md`へ理由を残して更新します。
-
-## Not included yet
-
-- tool別Skillの生成・同期基盤
-- proactive loopや無人の外部状態変更
-- provider固有のagent定義
-- task eventの統計的ランキング
-
-これらは必要性が反復して確認されてからExtensionとして追加します。
-
-## Plus / Proで使う（v2）
-
-MacとUbuntuで成果物・プロジェクト知識・引き継ぎを共有し、CodexとClaude
-の担当を利用枠に応じて交換します。既存の検証・独立レビュー要件は維持します。
-
-- 作業一覧: `.ai/knowledge/work-queue.md`
-- 残量の手入力・担当候補の推薦: `scripts/agent/quota.py`
-- PC間の引き継ぎ: `.ai/workflows/subscription-scheduling.md`
-- 続行に必要な情報: handoffのResume checkpoint
-
-担当は固定しません。まず作業に適した候補を選び、その中で残量に余裕のある
-方へ割り当てます。残量はアカウント単位で扱い、調整役は1台に集約します。
-未取得・古い・リセット済みの残量は再確認を求めます。上限突破や追加購入、
-API呼び出し、自動でのエージェント起動は行いません。
-
-```bash
-python3 scripts/agent/quota.py --help
-python3 scripts/agent/quota.py select --candidates codex claude
+# 共通テストと、このテンプレート固有の検証を実行
 scripts/agent/verify-change.sh full
 ```
 
-利用条件: macOS / Ubuntu、Bash 3.2以上、Python 3.9以上。
-新規タスクのroutingには`--policy-version v3`を使います（Claudeが計画・実装、Codexがテスト・修正、相互にクロスレビュー。詳細は`.ai/workflows/routing.md`）。
-skills・個人メモリの同期、残量の自動取得、無人運転は今後の拡張です。
+成功したCIは、画面品質やAIレビューの実施まで証明しません。検証結果の読み方は[共通の検証条件](.ai/verification/common.md)を参照してください。
 
-## GitHubレビューと、同じ指摘を繰り返さない仕組み
+## 自分のプロジェクトへ導入する
 
-PRには通常の自動チェックを用意し、AIレビューはCodexのGitHub連携を使います。
-有効化手順と未設定の範囲は`.ai/workflows/github-review.md`に記載しています。
-CIファイルを置くだけではCodexの自動レビューは有効になりません。
+このリポジトリが配布元の正本です。設定上の既定範囲は `~/work`、除外は `notes` ですが、ファイルが存在するだけで全プロジェクトへ導入されるわけではありません。
 
-UIの指摘、レビューで発見した欠陥、作業失敗は`.ai/feedback/`に記録します。
-次回は対象パスに合う記録を読み、修正→検証→再発防止を回します。
-モデル自体の再学習ではなく、知識・ルール・テストを育てる方式です。
-
-```bash
-python3 scripts/agent/feedback.py --help
-python3 scripts/agent/feedback.py context --path src/settings/page.tsx
-python3 scripts/agent/feedback.py sync-github --repo OWNER/REPO --pr 123
-bash scripts/agent/verify-change.sh full
+```mermaid
+flowchart LR
+    S[このリポジトリの正本] --> P[対象を指定して差分を確認]
+    P --> A[承認した対象へ導入・更新]
+    A --> M[管理ファイルと管理ブロック]
+    A --> O[初回だけ作る固有設定のひな形]
+    M --> L[ハッシュをロックファイルへ記録]
+    O --> U[各プロジェクトで仕様・検証を記入]
+    U --> V[対象側で検証・レビュー]
 ```
 
-記録・昇格・廃止の例は`.ai/feedback/README.md`、日々の運用は
-`.ai/workflows/feedback-loop.md`を参照してください。サンプルのUI指摘を
-本当のユーザーの好みとして登録しないでください。GitHubの本文は未信頼の
-受信データとして扱い、検証せずに指示やルールへ昇格させません。
+まず対象を一つ指定し、書き込みのない変更計画を確認します。`<repo>` は実際のプロジェクト名に置き換えてください。
 
-## Codex の Obsidian セッションノート
+```bash
+python3 scripts/harness/sync.py install ~/work/<repo> --dry-run
+# 対象と差分を確認し、導入が承認されたら実行
+python3 scripts/harness/sync.py install ~/work/<repo>
+# 正本更新後も、差分を確認してから反映
+python3 scripts/harness/sync.py sync ~/work/<repo> --dry-run
+python3 scripts/harness/sync.py sync ~/work/<repo>
+# 指定した対象だけを読み取り確認
+python3 scripts/harness/sync.py status ~/work/<repo>
+python3 scripts/harness/sync.py health ~/work/<repo>
+```
 
-`python3 scripts/session-notes/install.py` で、この端末の Codex に専用の
-SessionEnd / Stop フックを導入します。既存設定は保持し、変更前のファイルを
-同じディレクトリの `*.bak-日時` にバックアップします。復元時は両ファイルを
-バックアップから戻してください。起動済みの Codex は再起動して読み込み直します。
-導入直後は `~/.codex/hooks/session_note.disabled` により停止しています。
-会話本文を既存の Claude CLI に送り、要約を非公開 notes リポジトリへ同期する
-許可を確認後、この停止ファイルを削除して有効化します。再導入時も停止状態になります。
-この機能は個人環境用の拡張で、各開発リポジトリへの sync 対象にはしません。
+- `managed` は更新対象です。導入先で直接変更されていれば同期を拒否します。
+- `seeded` は存在しない場合だけ作り、以後はプロジェクト側で管理します。
+- 入口文書は `HARNESS:START` と `HARNESS:END` の管理ブロックだけを更新します。
+- 同期はコミットやプッシュを行いません。無関係な変更のある作業場所への反映を避け、対象ごとに検証します。
 
-- 保存先: `~/work/notes/sessions/`。全文ではなく、日本語の要約です。
-- 会話2発言以上を対象に終了時更新。Stop では新しいユーザー発言3回、または
-  新しい発言があり10分経過した場合に更新します。同一セッションは同じノートを更新。
-- 要約は既存運用と同じ、ログイン済みの `claude -p --model sonnet` を使用します。
-  Codex の user/assistant 本文だけを渡し、内部推論・ツール結果・環境の注入は除外します。
-- 既存プロジェクトノートに Obsidian リンクを追加し、対象ファイルのみ commit して
-  pull/push します。同期失敗は成功扱いにせず、次のフックで再試行します。
-- ログ: `~/.codex/hooks/session_note.log`、更新状態: `session_note.state.json`。
-- 手動確認: `python3 ~/.codex/hooks/session_note.py --run <rollout.jsonl> <作業ディレクトリ> end`
-- 短い会話はスキップします。強制終了でフックが走らない場合は、手動実行できます。
+導入後は `.ai/project.md`、構成案内、安全基準の固有設定、検証条件を埋め、`scripts/project/verify.sh` に実際の検査を用意してください。詳細は[共通環境の入口](.ai/README.md)を参照してください。
+
+`guard.py` は対応するフックとして別途設定された場合に働きます。対象範囲での未導入状態や管理ファイルの直接編集を検知し、古いブランチには警告します。内部エラー時は操作を止めない設計で、`AGENT_HARNESS_GUARD=off` で停止できます。このPRや同期コマンドだけで端末全体のフックは設定されません。
+
+## 普段の使い方と役割分担
+
+作業開始時に要求・受入基準・範囲・検証・停止条件を引き継ぎへ記録し、役割を予約します。
+
+```bash
+scripts/agent/create-handoff.sh
+scripts/agent/reserve-routing.py \
+  --task-id example_docs --policy-version v3 \
+  --area-id docs --task-type docs --risk low --intended-pattern P0
+```
+
+予約結果の `review_required` に従い、必要なレビューを実施してから `record-completion.py` で実際の結果を記録します。詳細は[変更手順](.ai/workflows/change.md)と[引き継ぎひな形](.ai/handoffs/template.md)を参照してください。
+
+役割構成は、単独で進めるP0、書き手と独立レビュアーのP1、計画担当も分けるP2、読み取り調査を分けるP3です。既定のv3はClaudeが計画・実装、Codexがテスト・修正を担当し、相互に別担当の成果をレビューします。書き手の交代前には停止と引き継ぎが必要です。相手が利用できない場合の代替も記録し、レビューを省略しません。v1/v2は過去の記録との互換用に残しています。
+
+利用枠は端末数で増えません。残量は実測で記録し、一つの調整役で管理します。候補の推薦は利用枠の予約や自動起動ではありません。[役割分担](.ai/workflows/routing.md)と[利用枠・端末間引き継ぎ](.ai/workflows/subscription-scheduling.md)に詳しく記載しています。
+
+## 改善するときに読む文書
+
+| 目的 | 文書 | 適用範囲 |
+|---|---|---|
+| 確認された指摘を記録・検証する | [教訓の記録](.ai/feedback/README.md) | 通常の改善手順 |
+| 原因不明の気づきを短く記録する | [観測の記録](.ai/feedback/observations.md) | コマンドは配布対象、実行は任意 |
+| 開発と原因分析を分離する | [後日の分析](.ai/workflows/deferred-feedback.md) | 正本内の任意ガイド、配布対象外 |
+| 要件・設計の対話や合意を確認する | [節目レビュー](.ai/workflows/upstream-review.md) | 正本内の任意ガイド、配布対象外 |
+| 指示を評価・統合・廃止する | [保守と効果測定](.ai/workflows/harness-maintenance.md) | 正本内の任意ガイド、配布対象外 |
+| GitHub CIとAIレビューを設定する | [GitHubレビュー](.ai/workflows/github-review.md) | 外部サービス側の設定が別途必要 |
+
+## 境界と補助機能
+
+自動マージ、無人の配布、利用枠の追加購入、モデルの再学習は行いません。秘密情報や会話全文を教訓・引き継ぎ・Gitへ保存しません。全チャットの常時監視やルールの自動書き換えもありません。
+
+個人環境用のセッションノート機能はハーネスの必須部分から分離しています。[補助機能の説明](docs/session-notes.md)を参照してください。既定では停止状態で、会話の転送や外部リポジトリへの同期を有効にするには別途許可が必要です。

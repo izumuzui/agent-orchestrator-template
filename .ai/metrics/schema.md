@@ -1,20 +1,14 @@
-# Task event schema
+# 作業イベントの形式
 
-Task events are an append-only decision journal, not a model leaderboard.
-Actual events live under `.agent-state/metrics/task-events.jsonl` or another
-access-controlled durable store. The event log is pseudonymized, not anonymous.
+イベントは追記専用の意思決定記録で、モデル順位表ではない。実データは `.agent-state/metrics/task-events.jsonl` またはアクセス制限した保存先へ置く。仮名化であり匿名ではない。
 
-## Privacy rules
+## プライバシー
 
-- opaque task IDs only
-- enum or bounded identifier fields only; no free-text friction field
-- no prompt, source content, transcript, terminal output, private absolute path,
-  secret, user identity, or private media-derived text
-- capability profile IDs include a version but no credential or account ID
+不透明な作業IDと列挙値・長さを制限した識別子だけを使い、自由文の問題欄を作らない。入力文、ソース、会話、端末出力、非公開の絶対パス、秘密、ユーザー識別、非公開メディア由来の文を記録しない。能力IDは版を含めても認証情報やアカウントIDを含めない。
 
-## `routing_reserved`
+## 役割予約: `routing_reserved`
 
-Required fields:
+必須項目:
 
 - `event`, `ts`, `task_id`, `policy_version`
 - `area_id`, `task_type`, `risk`, `intended_pattern`
@@ -22,37 +16,31 @@ Required fields:
 - `non_trivial`, `calibration`, `sentinel`
 - `review_required`, `review_reason`
 
-Routing sequence is atomically reserved before implementation. The first 10
-non-trivial tasks set `calibration=true`. After calibration, a separate
-low-risk-only `sentinel_sequence` makes each fifth task per counter key a
-sentinel. It is `null` for tasks outside that counter.
+実装前に順番を排他的に予約する。最初の非定型10件は `calibration=true`。校正後の低リスクだけで分類ごとの5件に1件を抜き取り対象とする。対象外の `sentinel_sequence` は `null`。
 
-## `task_completed`
+## 終了: `task_completed`
 
-Required fields:
+予約の識別子と役割項目、版付きの計画・編集・レビュー能力IDに加えて、次を必須とする。
 
-- reservation identity and routing fields
-- versioned planner, writer, and reviewer capability profile IDs
 - `reviewer_relation`, `review_outcome`, `review_rework_rounds`
-- implementation, verification, and plan-correction retry counts
-- verification `overall`, `passed`, `failed`, `skipped`, and
-  `environment_blocked`
-- `fallback_reason`, `rate_limit_hits`, and usage status/value/unit when exposed
-- categorized human interventions
-- `regression_of` when the task fixes an escaped defect
+- 実装、検証、計画修正の再試行数
+- 検証の `overall`, `passed`, `failed`, `skipped`, `environment_blocked`
+- `fallback_reason`, `rate_limit_hits`、取得可能なら使用量の状態・値・単位
+- 分類した人の介入
+- 見逃した欠陥の修正なら `regression_of`
 
-Do not use review finding count as a KPI. At checkpoints, inspect intervention,
-rework, retry, blocked proof, rate limits, and escaped defects qualitatively.
+レビュー指摘件数を成績指標にしない。見直し時は介入、手戻り、再試行、実行不能の検証、利用制限、見逃しを質的に確認する。
 
-## Allowed enums
+## 使用できる列挙値
 
-- task type: `feature`, `bugfix`, `refactor`, `review`, `ops`, `docs`
-- risk: `low`, `medium`, `high`
-- pattern: `P0`, `P1`, `P2`, `P3`, `P3+P0`, `P3+P1`, `P3+P2`
-- review relation: `none`, `fresh_same`, `cross_provider`
-- review outcome: `none`, `accepted`, `changes_required`, `blocked`
-- verification overall: `passed`, `failed`, `blocked`, `incomplete`
-- fallback: `none`, `quota`, `rate_limit`, `availability`, `scope_reduced`
-- usage status: `missing`, `approximate`, `reported`
-- intervention: `permission_approval`, `scope_decision`,
-  `acceptance_clarification`, `environment_recovery`, `safety_stop`
+| 分類 | 値 |
+|---|---|
+| 作業種別 | `feature`, `bugfix`, `refactor`, `review`, `ops`, `docs` |
+| リスク | `low`, `medium`, `high` |
+| 構成 | `P0`, `P1`, `P2`, `P3`, `P3+P0`, `P3+P1`, `P3+P2` |
+| レビュー関係 | `none`, `fresh_same`, `cross_provider` |
+| レビュー結果 | `none`, `accepted`, `changes_required`, `blocked` |
+| 検証総合 | `passed`, `failed`, `blocked`, `incomplete` |
+| 代替理由 | `none`, `quota`, `rate_limit`, `availability`, `scope_reduced` |
+| 使用量の状態 | `missing`, `approximate`, `reported` |
+| 介入 | `permission_approval`, `scope_decision`, `acceptance_clarification`, `environment_recovery`, `safety_stop` |

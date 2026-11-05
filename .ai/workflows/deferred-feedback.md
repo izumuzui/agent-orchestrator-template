@@ -1,73 +1,33 @@
-# Deferred process feedback (opt-in extension)
+# 成果物の修正と後日のプロセス分析
 
-Use this extension for unresolved process concerns. Existing clear UI/review
-corrections still follow the required feedback loop; this document does not
-waive immediate fixes, verification, review or scoped correction recording.
+原因が未判定の問題に使う任意ガイド。明確な画面訂正やレビュー欠陥の記録・修正・検証・レビューは、既存の改善手順どおり行う。
 
-## Capture and continue
+## 短く記録して開発を続ける
 
-Split a mixed correction into (a) current artifact behavior to correct and
-(b) a process observation to investigate later. Do not turn a feeling into a
-confirmed violation. Prioritize the artifact; capture observation, expected
-outcome, phase, issue type and safe evidence handles without diagnosing cause.
-Use the observation helper when installed, or keep equivalent sanitized local
-JSON under ignored task state. Neither record is an active lesson.
+混在する指摘を、現在の成果物で直す挙動と、後で調べるプロセス上の観測へ分ける。違和感を確定した違反と扱わない。
+成果物の修正を優先し、観測・期待・段階・問題種別・安全な証拠参照だけを短く残す。原因分析は後回しにする。導入済みなら観測コマンド、なければGit除外の作業状態に同等の安全なJSONを置く。どちらも有効な教訓ではない。
+記録全体を通常の開発入力へ読み込ませない。範囲を定めた調査で選んだ記録だけを読む。週次または5〜10件ごとの手動確認を基本とし、反復・重大な事故は前倒しできる。定期ジョブを作る許可は含まない。
 
-Do not load the observation archive into normal development prompts. Read only
-selected cases during an explicitly scoped investigation. Review weekly or at
-5–10 accumulated cases; repeated/serious incidents may justify earlier review.
-This is a manual cadence, not authorization for a scheduled job.
+## 調査担当を使う場合
 
-## Optional investigator
+基本は親担当が直接記録する。完成済みのJSONを追記するだけの子担当は不要。
+関連ルール・仕様・差分・過去の対象別事例を独立に調べ、証拠の質を上げられる場合だけ、新しい文脈の読み取り専用担当を使う。直接記録との5〜10件の比較で価値を確認する。時間・トークン上限を決め、一巡で止める。証拠不足は不明点として残し、再帰委譲しない。
 
-Default to parent capture. A child that merely appends an already complete
-record adds little value. Use a fresh read-only investigator only when an
-independent search of relevant rules, specification, diff and prior scoped
-cases can improve evidence. Compare 5–10 cases against direct capture before
-adopting the role. Set a time/token budget and stop after one bounded pass;
-missing evidence is an unknown, not a reason for recursive delegation.
+並行調査前に親が証拠を固定する。安全なリポジトリID、コミット、未コミット差分の識別子と許可された復元用ローカル保存、成果物の版、観測時刻、最小の安全な訂正要約、参照IDを用意する。コミットや差分ハッシュだけでは未コミット変更を復元できない。非公開の生データをGitに入れない。安全に固定できなければ直列実行にするか証拠不十分と明記する。子が親の会話全文を読めるとは仮定しない。
 
-Before continuing edits, parent freezes approved evidence: safe repository ID,
-commit, dirty-diff identity and recoverable local snapshot where allowed,
-artifact revision, observation time, minimal sanitized correction and approved
-reference handles. A commit or diff hash alone cannot recover uncommitted work.
-Do not copy private material into Git. If a safe snapshot cannot be made, run
-investigation serially or explicitly mark evidence incomplete. No full parent
-conversation is assumed available to a child.
+渡す初期資料は、事例ID、段階、観測と期待、許可パス、証拠参照と版、禁止データ・操作、上限と停止条件に絞る。調査担当は指定範囲だけを確認し、次を分離する。
 
-Bootstrap packet: case ID, phase, short observation/expected, allowed paths,
-reference handles and snapshot identity, forbidden data/actions, budget/stop.
-Investigator checks only those sources and separates:
+- 観測した事実と出典の版・位置
+- 関連する既存ルールと実際に確認した資料
+- 仮説・信頼度・未確認事項
+- 原因候補: 既存ルールの未遵守、ルール不足、仕様の曖昧さ、情報・環境・権限の不足、テスト不足、単発の判断ミス
 
-- observed facts and source revision/position;
-- relevant existing rules and sources actually checked;
-- hypotheses, confidence and unknowns;
-- candidate categories: ignored rule, missing rule, ambiguous specification,
-  information/environment/permission gap, missing test, isolated judgment error.
+失敗だけを根拠にルール不足と断定しない。子はソース、ハーネス、教訓、共有作業ツリーを編集しない。返すのは事例ID、記録の成否、重大な不明点だけ。
+短い結果の観測コマンドへの入力は親だけが行い、詳細調査は承認済みのローカル証拠保存先へ置く。カスタムエージェント機能があっても一人の書き手を守る。
 
-Do not infer missing rules from failure alone. Investigator does not modify
-source, harness, curated lessons or shared checkout. Return only case ID,
-recording success and critical unknowns. Parent alone invokes the validated
-capture helper for the short result; detailed sanitized investigation stays
-in approved local evidence storage. This preserves the repository's one-writer
-rule even when a provider supports custom agent definitions.
+## 後日の保守と段階導入
 
-## Later maintenance and rollout
-
-A separate maintenance session groups cases, checks duplicate/contradictory
-rules and proposes tests/docs/procedures/permission changes. Keep findings as
-candidates until evidence and required human/reviewer evaluation establish them.
-No automatic agent config or permanent instruction edits. Start with direct
-capture, then optionally trial investigator, milestone reviews and automation
-in that order; each stage needs evidence of value. Roll back by disabling the
-optional role/capture invocation, preserving existing corrections and proof.
-
-Claude Code CLI, Claude Desktop's Code feature, ordinary Desktop chat and Codex
-may expose different tools. Record observed version, ability to access a fresh
-context, local files, permissions and background execution before provider
-setup. Side conversations must not be assumed to persist logs. No provider
-configuration or workspace deployment is performed by adopting this guide.
-
-This file is an opt-in template-local extension, not automatically distributed
-by the managed manifest. Adoption in another project requires its own reviewed
-routing entry; do not silently sync other repositories.
+別セッションで傾向とルールの重複・矛盾を確認し、文書・手順・テスト・権限の変更を提案する。根拠と必要な人・レビュアーの評価が揃うまで候補のまま扱う。恒久ルールや設定を自動変更しない。
+直接記録、調査役の試行、節目レビュー、自動化の順に、それぞれ価値を確認して導入する。切り戻しは任意役割や記録呼び出しを止め、既存の訂正と証拠は保持する。
+Claude Code CLI、Claude DesktopのCode機能、通常チャット、Codexでは機能が異なる。導入前に実測した版、新しい文脈・ローカルファイル・権限・背景実行の利用可否を記録する。脇の会話が永続ログを書けるとは仮定しない。この文書だけで提供元設定や全体配布は行わない。
+このガイドは正本内だけの任意拡張で、管理対象一覧には含まない。他プロジェクトへの採用は固有の手順としてレビューし、無断同期しない。

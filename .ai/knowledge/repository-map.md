@@ -1,18 +1,17 @@
-# Repository map
+# リポジトリの構成案内
 
-Use this file to limit exploration. Replace the example rows when adopting the
-template; keep it short enough to scan before broad searches.
+調査範囲を絞るための案内。採用先では実際の構成に合わせ、全体を短く保つ。
 
-| Path | Responsibility | Usually read for |
+| 場所 | 責務 | 読む場面 |
 |---|---|---|
-| `README.md` | Product and development entry point | every substantial task |
-| `.ai/` | Shared agent knowledge and process | agent-environment changes |
-| `scripts/agent/` | Deterministic agent helpers | verification and orchestration |
-| `.github/` | PR verification and PR template | GitHub integration |
-| `.ai/feedback/` | Scoped corrections and verified lessons | before changes in the affected scope |
-| `scripts/agent/tests/` | Managed scheduling and feedback regression tests | every behavior change |
-| `scripts/harness/` | sync/guard tooling, manifest, seeds, workspace scope | harness distribution changes |
-| `scripts/project/verify.sh` | template-own checks of the sync/guard tooling | every harness change |
+| `README.md` | 全体像と導入 | 大きな作業の開始 |
+| `.ai/` | 共通知識と手順 | ハーネスの変更 |
+| `scripts/agent/` | 共通の検証・役割・記録 | 運用と検証 |
+| `.github/` | PR検証とひな形 | GitHub連携 |
+| `.ai/feedback/` | 対象別の訂正と教訓 | 対象範囲の変更前 |
+| `scripts/agent/tests/` | 配布する共通機能の回帰テスト | 挙動の変更 |
+| `scripts/harness/` | 同期・ガード・配布一覧・初期文書 | 配布の変更 |
+| `scripts/project/verify.sh` | この正本固有の検証 | ハーネスの変更 |
+| `docs/` | 任意の補助機能の説明 | 必要な場合だけ |
 
-Normally ignore generated artifacts, dependency caches, local databases,
-private fixtures, and `.agent-state/` unless the task explicitly concerns them.
+明示対象でなければ生成物、依存キャッシュ、ローカルDB、非公開の試験データ、`.agent-state/` を調査しない。

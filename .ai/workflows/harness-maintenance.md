@@ -1,82 +1,38 @@
-# Harness maintenance and evaluation (opt-in)
+# ハーネスの保守と効果測定
 
-Use a separately scoped session after 5–10 cases, at a manual weekly checkpoint,
-or for repeated/severe incidents. No background monitoring is installed. Read
-selected sanitized records only; logs do not become always-on context.
+5〜10件の記録、手動の週次確認、反復・重大事故をきっかけに、別の範囲を定めたセッションで行う任意の手順。常時監視は設置しない。安全に要約した選択済み記録だけを読み、ログを常時文脈にしない。
 
-## Current inventory and proposal gaps
+## 現在の構成
 
-Baseline: main at 761e66a. This is a source inspection, not a claim that any
-provider feature or deployed project has been verified.
-
-| Existing source | Already provides | Remaining gap / change slice |
+| 仕組み | 役割 | 境界 |
 |---|---|---|
-| feedback.py, feedback-loop.md | scoped curated corrections, promotion with evidence/prevention, rejection/retirement | separate unconfirmed capture; observation helper PR |
-| orchestration.md, review.md | one writer, bounded fresh read-only review | frozen feedback evidence, optional investigator and deferred triage guide PR |
-| change.md, handoffs/template.md | source-first acceptance and versioning | seven-axis requirements/design milestone rubric PR |
-| metrics/schema.md, routing.md | task outcomes, calibration, review policy | comparable harness experiments, rule cost/retirement; this guide PR |
-| sync.py health, guard.py, manifest.json | distribution integrity and operating health | health is not quality evaluation; use the experiment below |
-| session-notes tooling | session note extraction | notes are not classified feedback or proof of cause |
-| AGENTS.md / CLAUDE.md | thin adapters and safety parity check | no new blanket rule needed for these opt-in extensions |
+| `feedback.py` と改善手順 | 対象別の訂正、証拠と再発防止による昇格、却下・廃止 | 原因未判定の観測とは分ける |
+| `observe.py` | 未判定の観測をローカルに記録 | 自動昇格・通常文脈への読み込みはしない |
+| 複数担当・独立レビュー | 一人の書き手、新しい文脈、範囲と上限 | 調査役は必要な場合だけ |
+| 後日の分析・節目レビュー | 証拠固定、上流の7観点、開発との分離 | 正本内の任意ガイド |
+| 作業イベント・役割予約 | 結果、校正、レビュー要否を記録 | 品質ランキングではない |
+| 同期・健全性診断・ガード | 配布整合性と運用状態 | ルールが品質に効いた証明ではない |
+| セッションノート | 会話要約の補助保存 | 教訓や原因の証拠の代わりではない |
+| ツール別入口 | 読む順番と安全ルール、同一性の検査 | 新しい全体ルールを無条件に増やさない |
 
-The four slices may be reviewed independently. Existing feedback is sufficient
-for verified defects; a second curated lesson store would duplicate it. Reuse
-local task state for observations. Provider-specific agent definitions, hooks
-and automatic rewriting remain deferred until pilot evidence warrants them.
+確認済み欠陥は既存の教訓記録で足りる。二重の教訓保管庫を作らず、観測はローカル作業状態へ分ける。提供元固有のエージェント定義、フック、自動書き換えは試行で価値が分かるまで保留する。
 
-## Placement and consolidation
+## 配置と統廃合
 
-Inventory each candidate instruction by source, scope, trigger, owner, actual
-mechanism and overlap. Specs/decisions belong in project docs/ADRs; repeated
-procedures in a workflow or Skill; always-needed routing/safety in thin adapters;
-mechanical quality in tests/lint/CI; dangerous operations in actual permissions
-or hooks with explicit approval. A written prohibition is not enforcement, and
-a Skill is not automatically a guardrail. Avoid absolute adapter line targets.
+候補ごとに出典、範囲、適用契機、所有者、実際の制御、重複を棚卸しする。
+仕様・判断は文書や意思決定記録、反復手順はワークフローやスキル、常時必要な案内・安全は短い入口、機械判定可能な品質はテスト・静的検査・CI、危険操作は承認を伴う権限やフックに置く。文章の禁止は強制機構ではなく、スキルも自動的な安全制約ではない。入口の行数を絶対目標にしない。
+追加前に重複・矛盾、既存ルールの可用性と遵守状況、仕様・情報・環境・権限・検証不足・単発判断を確認する。保持・統合・言い換え・移動・自動化・削除・保留から選び、証拠と所有者を付ける。入口間の安全重複は機械検査されているので短縮だけを理由に消さない。観測を既存の証拠・再発防止条件なしで昇格させない。
 
-Before adding a rule, check existing equivalent/contradictory rules, whether
-they were available and followed, and alternative causes: ambiguous spec,
-missing information, environment, permissions, test gaps or one-off judgment.
-For each proposed change choose retain/merge/reword/move/automate/remove/defer,
-with evidence and owner. Current safety duplication between adapters is already
-mechanically checked; do not remove it merely to shorten files. Do not promote
-an observation without the existing feedback evidence/prevention gate.
+## 同条件での比較
 
-## Bounded comparative pilot
+変更前に安全な代表作業5〜10件と期待結果を固定する。要件・設計の曖昧さ、既知の訂正、不明確な観測、問題なし、反復失敗を含める。
+変更前後で作業・版・証拠へのアクセス・モデル・設定・権限・採点を揃える。揃わない差を記録し因果を断定しない。可能なら繰り返して平均だけでなくばらつきも示す。
+各実行の事例ID、ハーネス版、直接記録か調査役か、成否・違反、手戻り、重要な未決の見逃し、不要な質問、時間、実測トークンまたは未取得、証拠の有用性、記録負担、レビュー一致度をローカルに残す。生データはGitへ入れず、件数・失敗・ばらつきの集計だけを報告する。使用量を捏造しない。
+成功基準、追加時間・トークン上限、検出・手戻り改善の閾値を事前に決める。未設定なら探索結果であり配布の根拠にしない。安全や必須検証を緩めない。直接記録は軽いが証拠が薄く、調査役は時間と文脈を使って証拠を充実させるという差を評価する。
 
-Freeze 5–10 sanitized representative tasks and expected outcomes before changes.
-Include requirements/design ambiguity, known correction, uncertain observation,
-no-issue case and repeat failure. Use identical task/revision, evidence access,
-model/version/configuration, permission profile and scoring for baseline and
-candidate; record unavoidable differences and do not claim causality from them.
-Repeat cases when feasible to report variability, not only a single mean.
+## 採用と切り戻し
 
-For each run record locally: task/case ID, harness revision, direct vs investigator
-mode, outcome/violations, rework rounds, missed consequential choices, irrelevant
-questions, elapsed time, measured tokens (or unavailable), evidence usefulness,
-recording burden and reviewer agreement. Keep raw content outside Git. Report
-aggregates with sample size, failures and variation; no invented usage values.
-
-Predeclare project-specific thresholds for success, maximum added time/tokens
-and acceptable detection/rework improvement. Never relax safety or required
-proof for an experiment. If thresholds are absent, the result is exploratory
-and cannot justify rollout. Direct capture minimizes cost but has thinner
-evidence; investigation can improve diagnosis at added time/context cost.
-
-## Decision, rollout and rollback
-
-Compare baseline/candidate using the same rubric and human review of sampled
-candidates. No finding count target; zero useful findings is valid. Propose a
-small reviewed PR with placement rationale, results/limitations, owner, review
-trigger and rollback. Do not auto-edit adapters, Skills or permissions.
-
-Remove/merge ineffective or stale rules after checking their safety purpose and
-remaining coverage. Reassess after model or contract updates and repeated
-failures. Keep superseded decisions and retired lesson history traceable.
-Rollback reverts the reviewed change and optional invocation, reruns required
-checks and preserves local observations under the project's retention policy.
-Cross-repository deployment requires separate scope and reviewed sync dry-runs;
-these PRs do not authorize modifying adopted repositories or global settings.
-
-This template-local extension is opt-in and not distributed automatically.
-Use a project-specific routing entry to adopt it. Do not turn the weekly review
-suggestion into an automation without explicit user authorization.
+同じ基準で比較し、人が候補の一部を確認する。指摘件数を目標にせず、成果ゼロも許す。配置理由、結果と限界、所有者、見直し契機、切り戻しを小さなPRにまとめてレビューする。入口・スキル・権限は自動編集しない。
+安全上の役割と残る検証範囲を確認してから、無効・古いルールを削除・統合する。モデルや契約の更新、反復失敗で再評価する。過去の決定・廃止履歴は辿れるようにする。
+切り戻しはレビュー済み変更と任意呼び出しを戻し、必須検証を再実行する。観測は保持方針に従う。他リポジトリへの配布は別途の範囲指定と同期差分の確認が必要で、この手順だけでは他プロジェクトや全体設定を変更しない。
+管理対象外の任意ガイドとして固有の作業手順へ採用する。週次の提案を明示許可なしに自動ジョブにしない。

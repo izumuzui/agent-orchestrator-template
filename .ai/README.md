@@ -1,65 +1,49 @@
-# Shared agent environment
+# 共通ハーネスの入口
 
-This directory is the source of truth for model-neutral project knowledge,
-safety, workflows, verification, routing, and handoff contracts. Tool adapters
-stay short and point here.
+モデルに依存しない知識、安全、手順、検証、役割分担、引き継ぎの正本です。ツール別の入口は短く保ち、ここを参照します。
 
-## Managed core and project overlay
+## 共通管理と固有設定
 
-This repository adopts the shared harness from `agent-orchestrator-template`.
-Files listed in `.ai/harness.lock.json` are managed: change them in the
-template and run `scripts/harness/sync.py sync <repo>` from the template, never
-edit them in place. Project-owned slots, which the sync never overwrites:
+導入先で `.ai/harness.lock.json` に載るファイルは正本で編集し、同期コマンドで更新します。導入先で直接編集しません。この正本自体にはロックは不要です。
 
-| Slot | Purpose |
+| プロジェクト所有の場所 | 内容 |
 |---|---|
-| `.ai/project.md` | product summary, authoritative documents, extra task routing, review focus |
-| `.ai/standards/security-overlay.md` | repository-specific risk classes and forbidden operations |
-| `.ai/verification/project.md` | product checks and the modes of `scripts/project/verify.sh` |
-| `.ai/knowledge/repository-map.md` | where to look, what to ignore |
-| `.ai/knowledge/decisions.md` | durable decisions of this repository |
-| `.ai/knowledge/work-queue.md` | sanitized shared work queue |
-| `scripts/project/verify.sh` | executable product verification (`full`, `ci`, extra modes) |
-| `scripts/project/check.sh` | optional extra agent-environment checks |
+| `.ai/project.md` | 製品の前提、正本となる資料、追加手順、レビュー観点 |
+| `.ai/standards/security-overlay.md` | 固有のリスクと禁止操作 |
+| `.ai/verification/project.md` | 固有の検証と実行モード |
+| `.ai/knowledge/repository-map.md` | 調査先と除外対象 |
+| `.ai/knowledge/decisions.md` | 長く残す意思決定 |
+| `.ai/knowledge/work-queue.md` | 非公開情報を除いた作業一覧 |
+| `scripts/project/verify.sh` | 固有の検証コマンド |
+| `scripts/project/check.sh` | 任意の追加整合性検査 |
 
-Any other project file under `.ai/` (for example extra workflows) is also
-project-owned. When a managed rule and a project overlay overlap, apply both;
-the stricter safety rule wins.
+管理対象外の追加文書もプロジェクト所有です。共通ルールと固有設定を両方適用し、安全上は厳しい方を優先します。
 
-## Instruction priority
+## 指示の優先順位
 
-1. Explicit user instruction for the current task
-2. Safety, privacy, authorization, and non-destructive-operation constraints
-3. The nearest tool adapter
-4. This shared environment and repository-authoritative documents
-5. General conventions
+1. 今回のユーザーの明示指示
+2. 安全・プライバシー・承認・非破壊操作の制約
+3. 最も近いツール別入口
+4. この共通環境とリポジトリの正本資料
+5. 一般的な慣例
 
-Do not resolve a material contradiction by guessing.
+重要な矛盾を推測で解決しません。
 
-## Task routing
+## 作業別の手順
 
-| Task shape | Workflow | Required evidence |
+| 作業 | 文書 | 必要な証拠 |
 |---|---|---|
-| Change or fix | `workflows/change.md` | acceptance + focused proof + common checks |
-| User corrections / UI feedback | `workflows/feedback-loop.md` | scoped source + expected behavior + verified prevention |
-| GitHub CI / native Codex review | `workflows/github-review.md` | actual CI and review results |
-| Independent review | `workflows/review.md` | source-first review + diff + verification evidence |
-| Multi-agent work | `workflows/orchestration.md` | bounded roles + one writer + final synthesis |
-| Subscription scheduling / cross-machine resume | `workflows/subscription-scheduling.md` | observed quota + stopped writer + checkpoint |
-| Role selection | `workflows/routing.md` | intended pattern + actual assignment + fallback reason |
-| Project-specific task shapes | `.ai/project.md` | as declared there, plus the common contract |
+| 変更・修正 | `workflows/change.md` | 受入基準、対象別の検証、共通チェック |
+| ユーザーの訂正・画面の指摘 | `workflows/feedback-loop.md` | 出典、期待する挙動、検証した再発防止 |
+| GitHub CI・Codexレビュー | `workflows/github-review.md` | 実際のCI・レビュー結果 |
+| 独立レビュー | `workflows/review.md` | 出典からの基準導出、差分、検証の証拠 |
+| 複数担当の作業 | `workflows/orchestration.md` | 限定した役割、一人の書き手、最終的な統合 |
+| 利用枠・端末間引き継ぎ | `workflows/subscription-scheduling.md` | 観測した残量、旧担当の停止、再開地点 |
+| 役割の選択 | `workflows/routing.md` | 意図した構成、実際の担当、代替理由 |
+| プロジェクト固有の作業 | `.ai/project.md` | 固有条件と共通条件 |
 
-## Before implementation
+## 実装前と完了時
 
-- Identify requirement sources without copying raw private content.
-- Freeze versioned acceptance before the writer starts.
-- Declare allowed and forbidden scope.
-- Classify risk using `standards/security.md` and `standards/security-overlay.md`.
-- Select a P0-P3 pattern and reserve routing for tracked tasks.
-- State proof, stop conditions, and retry bounds.
-
-## Knowledge lifecycle
-
-Update stable facts only. At both implementation Done and review Done, ask
-whether architecture, repository ownership, safety boundaries, verification,
-or routing policy changed. Record policy changes in `knowledge/decisions.md`.
+要求の出典を識別し、生の非公開内容はコピーしません。版を付けて受入基準を固定し、許可・禁止範囲、検証、停止条件、再試行上限を宣言します。
+`standards/security.md` と `standards/security-overlay.md` でリスクを分類し、P0〜P3を選んで追跡対象の役割を予約します。
+実装完了・レビュー完了の両時点で、構成・所有範囲・安全境界・検証・役割方針に変更があれば `knowledge/decisions.md` へ記録します。安定した事実だけを残します。

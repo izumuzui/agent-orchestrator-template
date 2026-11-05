@@ -1,39 +1,28 @@
-# Bounded orchestration workflow
+# 複数担当による作業の手順
 
-Use orchestration only when independent read-heavy work or a separate review is
-worth more than the coordination cost. Keep small, ambiguous, or write-heavy
-work in one primary context.
+独立した読み取り調査や別担当レビューの価値が、調整コストを上回る場合だけ使う。小さい作業、曖昧な作業、編集中心の作業は主担当の文脈にまとめる。
 
-## Roles
+| 役割 | 責務 |
+|---|---|
+| 主担当 | 範囲、結果の統合、担当決定、ユーザーへの説明 |
+| 計画担当 | P2の受入基準と計画の固定 |
+| 調査担当 | 限定した一問を読み取り調査し、証拠だけを返す |
+| 書き手 | 共有作業ツリーを編集できる唯一の担当 |
+| レビュアー | 新しい文脈で二段階の読み取りレビューを行う |
 
-- Primary: owns scope, synthesis, routing, and user communication
-- Planner: freezes acceptance and plan for P2
-- Explorer: read-only, one bounded question, evidence-only return
-- Writer: the only role allowed to edit the shared worktree
-- Reviewer: read-only, fresh context, follows the two-stage review workflow
+## 制限
 
-## Bounds
+書き手は一人、並行調査担当は最大二人。再帰的な委譲は既定で行わない。
+調査の重複や同じ作業ツリーでの競合実装を避ける。修正・検証は原則3回まで、同じ失敗2回で再診断する。
 
-- one shared-worktree writer
-- at most two parallel explorers
-- no recursive delegation by default
-- no duplicate investigation or competing shared-worktree implementations
-- default maximum of three implementation/verification rounds
-- same failure twice triggers re-diagnosis
+## 進め方
 
-## Lifecycle
+1. 主担当が測定可能な停止条件とプライバシー境界を定義する。
+2. 役割を予約し、校正期間・抜き取り・リスクに応じた独立レビュー要否を確認する。
+3. 調査先と返却形式を指定した読み取り専用の問いを割り当てる。
+4. 証拠を統合してから書き手が編集・検証する。
+5. レビュアーが出典から基準を導いた後、固定基準・差分・証拠を確認する。
+6. 書き手が受け入れた指摘を修正し、影響する検証を再実行する。
+7. 主担当が終了イベントと必要な意思決定を記録する。
 
-1. Primary defines the measurable stop condition and privacy boundary.
-2. Reserve routing and determine whether calibration, sentinel, or risk requires
-   independent review.
-3. Assign bounded read-only questions with exact files and return shape.
-4. Synthesize evidence before the writer edits.
-5. Writer implements and verifies.
-6. Reviewer independently derives acceptance from the bootstrap packet, then
-   reviews frozen acceptance, diff, and evidence.
-7. Writer applies accepted findings and reruns affected proof.
-8. Primary records the terminal event and any durable policy decision.
-
-Do not delegate deployment, production service control, destructive actions,
-credentials, private raw data, or external mutations. Those require their
-normal authorization and safety workflows regardless of role pattern.
+配布、本番操作、破壊的操作、認証情報、生の非公開データ、外部変更は委譲しない。役割にかかわらず通常の承認と安全手順を守る。

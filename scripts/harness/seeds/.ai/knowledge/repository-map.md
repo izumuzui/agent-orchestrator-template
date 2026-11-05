@@ -1,13 +1,12 @@
-# Repository map
+# リポジトリの構成案内
 
-Use this file to limit exploration. Keep it short enough to scan.
+調査先を絞るために使い、短く保つ。
 
-| Path | Responsibility | Usually read for |
+| 場所 | 責務 | 読む場面 |
 |---|---|---|
-| `AGENTS.md` / `CLAUDE.md` | managed harness block + project rules | every task |
-| `.ai/` | shared agent knowledge and process | process questions |
-| `scripts/agent/` | managed harness helpers | verification and orchestration |
-| `scripts/project/` | product verification entry point | every behavior change |
+| `AGENTS.md` / `CLAUDE.md` | 共通の管理ブロックと固有ルール | 毎回 |
+| `.ai/` | 共通知識と手順 | 進め方の確認 |
+| `scripts/agent/` | 管理対象の共通コマンド | 検証と担当調整 |
+| `scripts/project/` | 製品の検証入口 | 挙動の変更 |
 
-Normally ignore generated artifacts, dependency caches, local databases,
-private fixtures, and `.agent-state/` unless the task explicitly concerns them.
+明示対象でなければ生成物、依存キャッシュ、ローカルDB、非公開の試験データ、`.agent-state/` を調査しない。

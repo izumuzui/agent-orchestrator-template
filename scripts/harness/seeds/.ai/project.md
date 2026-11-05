@@ -1,22 +1,22 @@
-# Project overlay
+# プロジェクト固有の設定
 
-Project-owned. The harness sync never overwrites this file.
+プロジェクト所有の文書であり、同期で上書きしない。
 
-## Product
+## 製品の概要
 
-One paragraph: what this repository is and what it must never become.
+このリポジトリが提供するものと、行ってはいけないことを一段落で記入する。
 
-## Authoritative documents
+## 正本となる資料
 
-| Topic | Document |
+| 内容 | 資料 |
 |---|---|
-| Product rules | `AGENTS.md` (outside the managed block) |
+| 製品ルール | `AGENTS.md` の管理ブロック外 |
 
-## Additional task routing
+## 固有の作業手順
 
-| Task shape | Workflow | Required evidence |
+| 作業 | 手順 | 必要な証拠 |
 |---|---|---|
 
-## Review focus
+## レビュー観点
 
-Repository-specific review items appended to `.ai/workflows/review.md`.
+共通の `.ai/workflows/review.md` に追加する固有の観点を記入する。

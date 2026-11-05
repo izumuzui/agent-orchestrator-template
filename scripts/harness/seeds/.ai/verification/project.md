@@ -1,12 +1,10 @@
-# Project verification
+# プロジェクト固有の検証
 
-`scripts/project/verify.sh <mode>` implements these modes. Exit 0 = passed,
-exit 3 = environment-blocked, other non-zero = failed.
+`scripts/project/verify.sh <mode>` で実行する。終了コード0は成功、3は環境による実行不能、それ以外の非0は失敗。
 
-| Mode | Checks | Required for |
+| モード | 検査 | 必要な場面 |
 |---|---|---|
-| `full` | not configured | completion |
-| `ci` | not configured | GitHub Actions |
+| `full` | 未設定 | 完了前 |
+| `ci` | 未設定 | GitHub Actions |
 
-Manual checks that automation cannot cover (UI, devices) are listed here and
-reported separately.
+画面や実機など自動化で確認できない検査もここへ記載し、別途結果を報告する。

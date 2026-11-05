@@ -1,20 +1,18 @@
-# Decision journal
+# 意思決定の記録
 
-Record durable decisions, not transcripts or hidden reasoning.
+長く残す判断を記録し、会話全文や内部推論は残さない。
 
-| Date | Decision | Status | Revisit trigger |
+| 日付 | 判断 | 状態 | 見直す契機 |
 |---|---|---|---|
-| 2026-07-15 | Separate quality routing from quota-aware scheduling | active | routing evidence contradicts the split |
-| 2026-07-15 | Keep one writer; parallelize only read-only investigation and review | active | isolated worktrees replace the shared worktree |
-| 2026-07-15 | Use Pattern C as the initial P2 assignment, not a model ranking | experiment | first 10 non-trivial tasks or model/contract change |
-| 2026-07-15 | Require independent review for calibration tasks and high-risk changes | experiment | first 10-task checkpoint |
-| 2026-07-15 | Store raw task events outside Git and commit only schema and aggregate decisions | active | approved durable telemetry store changes |
+| 2026-07-15 | 品質に基づく役割分担と利用枠の調整を分ける | 有効 | 実測が分離方針と矛盾 |
+| 2026-07-15 | 書き手は一人、並行担当は読み取り調査とレビューだけ | 有効 | 分離した作業場所へ移行 |
+| 2026-07-15 | 初期P2の割り当てに方針Cを使うが、モデル順位とはしない | 試行 | 非定型10件またはモデル・契約変更 |
+| 2026-07-15 | 校正期間と高リスク作業は独立レビュー必須 | 試行 | 最初の10件 |
+| 2026-07-15 | 実イベントはGit外へ置き、形式と集計判断だけを共有 | 有効 | 承認済みの保存先変更 |
+| 2026-10-24 | v2: 実測残量で適格な役割を交換し、調整役を一つにする | 有効 | 利用枠取得方法や契約変更 |
+| 2026-10-24 | 秘密を渡さないCIとCodexレビューを分け、教訓は証拠と防止策で昇格 | 有効 | 再発、古い教訓、連携変更 |
+| 2026-10-24 | 設定上の ~/work への配布元をこの正本へ集約し、ハッシュとガードで整合性を確認 | 有効 | 正当な編集の阻害、固有の共通基盤が必要 |
+| 2026-10-25 | v3: Claudeが計画・実装、Codexがテスト・修正、相互に別提供元レビュー | 有効 | 終了10件またはモデル・契約変更 |
+| 2026-11-06 | 文書とひな形を日本語へ統一し、READMEは実装に沿った図、個人用ノートは補助文書へ分離 | 提案 | 利用者の誤解、構成の変更 |
 
-| 2026-10-24 | v2: exchange qualified Codex Plus / Claude Pro roles using manual account-level quota observations; one coordinator, sanitized Git checkpoints | active | quota API availability or contract change |
-
-| 2026-10-24 | Native Codex review plus secret-free CI; scoped corrections become lessons only after evidence and prevention are recorded | active | recurring defects, stale lessons, or review integration changes |
-| 2026-10-24 | This template is the single source for every repository under ~/work; managed files are synced with hash locks and enforced by a global fail-open guard hook | active | guard blocks legitimate work or a repo needs a divergent core |
-| 2026-10-25 | v3 default: Claude plans/implements, Codex tests/fixes, each reviewed cross-provider by the other | active | 10 terminal v3 task events or model/contract change |
-
-At each checkpoint, record what changed, what evidence supported it, and the
-next review trigger. Do not use review finding counts as a success metric.
+各見直しでは変更、根拠、次の契機を記録する。指摘件数を成功指標にしない。

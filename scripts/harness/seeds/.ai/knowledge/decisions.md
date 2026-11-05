@@ -1,7 +1,7 @@
-# Decision journal
+# 意思決定の記録
 
-Record durable decisions, not transcripts or hidden reasoning.
+長く残す判断を記録し、会話全文や内部推論は残さない。
 
-| Date | Decision | Status | Revisit trigger |
+| 日付 | 判断 | 状態 | 見直す契機 |
 |---|---|---|---|
-| {{DATE}} | Adopt the shared agent-orchestrator-template harness; managed files are synced from the template | active | harness contract change |
+| {{DATE}} | 共通ハーネスを採用し、管理ファイルは正本から同期する | 有効 | 共通条件の変更 |
