@@ -1,6 +1,9 @@
 {
   "schema": "agent-harness-manifest/v1",
-  "adapter_blocks": ["AGENTS.md", "CLAUDE.md"],
+  "adapter_blocks": [
+    "AGENTS.md",
+    "CLAUDE.md"
+  ],
   "managed": [
     ".ai/README.md",
     ".ai/standards/security.md",
@@ -24,7 +27,10 @@
     "scripts/agent/quota.py",
     "scripts/agent/feedback.py",
     "scripts/agent/tests/test_quota.py",
-    "scripts/agent/tests/test_feedback.py"
+    "scripts/agent/tests/test_feedback.py",
+    "scripts/agent/observe.py",
+    "scripts/agent/tests/test_observe.py",
+    ".ai/feedback/observations.md"
   ],
   "seeded": [
     "AGENTS.md",
@@ -39,5 +45,7 @@
     ".github/pull_request_template.md",
     "scripts/project/verify.sh"
   ],
-  "gitignore": ["/.agent-state/"]
+  "gitignore": [
+    "/.agent-state/"
+  ]
 }
